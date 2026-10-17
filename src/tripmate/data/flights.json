@@ -1,0 +1,14 @@
+[
+  {"flight": "TM-204", "origin": "HYD", "destination": "BLR", "departs": "07:10"},
+  {"flight": "TM-208", "origin": "HYD", "destination": "BLR", "departs": "18:45"},
+  {"flight": "TM-205", "origin": "BLR", "destination": "HYD", "departs": "09:30"},
+  {"flight": "TM-310", "origin": "HYD", "destination": "DEL", "departs": "06:00"},
+  {"flight": "TM-311", "origin": "DEL", "destination": "HYD", "departs": "12:15"},
+  {"flight": "TM-420", "origin": "BLR", "destination": "BOM", "departs": "08:20"},
+  {"flight": "TM-421", "origin": "BOM", "destination": "BLR", "departs": "14:05"},
+  {"flight": "TM-530", "origin": "DEL", "destination": "BOM", "departs": "10:40"},
+  {"flight": "TM-531", "origin": "BOM", "destination": "DEL", "departs": "19:55"},
+  {"flight": "TM-640", "origin": "MAA", "destination": "HYD", "departs": "11:25"},
+  {"flight": "TM-641", "origin": "HYD", "destination": "MAA", "departs": "16:35"},
+  {"flight": "TM-750", "origin": "BLR", "destination": "MAA", "departs": "13:50"}
+]
