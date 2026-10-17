@@ -113,8 +113,9 @@ def _explain(error: Exception, base_url: str) -> str:
             "TLS inspection, or work offline with `uv run ws case 0 --exporter console`"
         )
     if error.status_code in (401, 403):
+        cloud = base_url.rstrip("/") in REGIONS.values()
         for name, url in REGIONS.items():
-            if url != base_url.rstrip("/") and _keys_work(url):
+            if cloud and url != base_url.rstrip("/") and _keys_work(url):
                 return (
                     f"these keys belong to the {name} region: set LANGFUSE_BASE_URL={url} in .env"
                 )

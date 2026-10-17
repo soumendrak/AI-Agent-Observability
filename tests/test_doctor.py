@@ -96,7 +96,10 @@ def test_base_url_with_a_path(capsys: pytest.CaptureFixture[str]) -> None:
     )
 
 
-def test_rejected_keys(capsys: pytest.CaptureFixture[str], fake_langfuse: FakeLangfuse) -> None:
+def test_rejected_keys(
+    capsys: pytest.CaptureFixture[str], fake_langfuse: FakeLangfuse, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(doctor, "REGIONS", {"EU": fake_langfuse.url, "US": UNREACHABLE})
     use_keys(fake_langfuse.url, BROKEN_KEY)
     line = fail_line(capsys)
     assert "rejected the keys (HTTP 401)" in line
@@ -174,3 +177,16 @@ def test_hello_trace_is_checked_again_at_30_seconds(
     use_keys(fake_langfuse.url, DROPPED_KEY)
     fail_line(capsys)
     assert fake_langfuse.events == ["check"] + ["wait 2", "check"] * 15
+
+
+def test_keys_for_a_self_hosted_server_never_go_to_the_cloud(
+    capsys: pytest.CaptureFixture[str],
+    fake_langfuse: FakeLangfuse,
+    other_region: str,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(doctor, "REGIONS", {"EU": UNREACHABLE, "US": fake_langfuse.url})
+    use_keys(other_region, "pk-lf-self-hosted")
+    line = fail_line(capsys)
+    assert f"Langfuse at {other_region} rejected the keys (HTTP 401)" in line
+    assert "belong to" not in line
