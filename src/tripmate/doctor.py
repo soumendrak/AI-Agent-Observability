@@ -42,6 +42,10 @@ def _local(python: tuple[int, int]) -> Iterator[str]:
     if not _is_url(base_url):
         raise Failed(f"set LANGFUSE_BASE_URL to your region: {REGIONS}")
     yield "keys look right"
+    mode = os.environ.get("LLM_MODE", "fake")
+    if mode != "fake":
+        raise Failed(f"LLM_MODE={mode} is not supported; set LLM_MODE=fake in .env")
+    yield "LLM_MODE=fake"
 
 
 def _is_url(text: str) -> bool:
@@ -72,9 +76,9 @@ def _remote(telemetry: Telemetry, base_url: str) -> Iterator[str]:
     if not _arrived(telemetry, result.trace_id):
         raise Failed(
             "the hello trace did not arrive in Langfuse within 30 s; a proxy or firewall may "
-            "block /api/public/otel, or work offline with --exporter console"
+            "block /api/public/otel, or work offline with `uv run ws case 0 --exporter console`"
         )
-    yield f"hello trace: {telemetry.trace_url(result.trace_id)}"
+    yield f"hello trace: {base_url.rstrip('/')}/project/{project.id}/traces/{result.trace_id}"
     yield "READY-" + hashlib.sha256(project.id.encode()).hexdigest()[:4].upper()
 
 
@@ -82,7 +86,7 @@ def _explain(error: Exception, base_url: str) -> str:
     if not isinstance(error, ApiError):
         return (
             f"cannot reach {base_url} ({type(error).__name__}): check wifi, proxy, VPN or "
-            "TLS inspection, or work offline with --exporter console"
+            "TLS inspection, or work offline with `uv run ws case 0 --exporter console`"
         )
     if error.status_code in (401, 403):
         return (
@@ -91,7 +95,7 @@ def _explain(error: Exception, base_url: str) -> str:
         )
     return (
         f"Langfuse at {base_url} answered HTTP {error.status_code}; the service may be busy, "
-        "try again in a minute or work offline with --exporter console"
+        "try again in a minute or work offline with `uv run ws case 0 --exporter console`"
     )
 
 

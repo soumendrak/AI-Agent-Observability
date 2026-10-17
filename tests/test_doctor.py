@@ -21,14 +21,15 @@ def test_ready(capsys: pytest.CaptureFixture[str], fake_langfuse: FakeLangfuse) 
     code, out, _ = ws(capsys, "doctor")
     lines = out.splitlines()
     assert code == 0
-    assert lines[:4] == [
+    assert lines[:5] == [
         "[OK] Python 3.12",
         "[OK] .env found",
         "[OK] keys look right",
+        "[OK] LLM_MODE=fake",
         f"[OK] Langfuse project tripmate-workshop at {fake_langfuse.url}",
     ]
-    assert lines[4].startswith(f"[OK] hello trace: {fake_langfuse.url}/project/proj-test/traces/")
-    assert lines[5] == "READY-" + hashlib.sha256(b"proj-test").hexdigest()[:4].upper()
+    assert lines[5].startswith(f"[OK] hello trace: {fake_langfuse.url}/project/proj-test/traces/")
+    assert lines[6] == "READY-" + hashlib.sha256(b"proj-test").hexdigest()[:4].upper()
 
 
 def test_wrong_python(capsys: pytest.CaptureFixture[str]) -> None:
@@ -56,6 +57,13 @@ def test_swapped_keys(capsys: pytest.CaptureFixture[str]) -> None:
     assert "the keys are swapped" in fail_line(capsys)
 
 
+def test_unsupported_llm_mode(capsys: pytest.CaptureFixture[str]) -> None:
+    use_keys("https://cloud.langfuse.com")
+    with Path(".env").open("a", encoding="utf-8") as env:
+        env.write("LLM_MODE=openai\n")
+    assert fail_line(capsys) == "[FAIL] LLM_MODE=openai is not supported; set LLM_MODE=fake in .env"
+
+
 def test_base_url_without_scheme(capsys: pytest.CaptureFixture[str]) -> None:
     use_keys("cloud.langfuse.com")
     assert "set LANGFUSE_BASE_URL to your region" in fail_line(capsys)
@@ -75,7 +83,9 @@ def test_rejected_keys(capsys: pytest.CaptureFixture[str], fake_langfuse: FakeLa
 
 def test_unreachable(capsys: pytest.CaptureFixture[str]) -> None:
     use_keys("http://127.0.0.1:9", "pk-lf-unreachable")
-    assert "cannot reach http://127.0.0.1:9 (ConnectError)" in fail_line(capsys)
+    line = fail_line(capsys)
+    assert "cannot reach http://127.0.0.1:9 (ConnectError)" in line
+    assert line.endswith("work offline with `uv run ws case 0 --exporter console`")
 
 
 def test_busy_service_is_not_blamed_on_the_keys(
