@@ -28,6 +28,7 @@ packages = ["src/tripmate"]
 [tool.ruff]
 line-length = 100
 target-version = "py312"
+extend-exclude = ["evals/booking_matches.py"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF", "PTH", "C4", "PIE", "RET"]
@@ -43,7 +44,7 @@ testpaths = ["tests"]
 
 [tool.coverage.run]
 branch = true
-source = ["tripmate"]
+source = ["tripmate", "evals"]
 
 [tool.coverage.report]
 fail_under = 100

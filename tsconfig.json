@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "moduleDetection": "legacy",
+    "types": ["node"],
+    "rootDir": ".",
+    "outDir": ".ts-build"
+  },
+  "include": ["evals/*.ts", "tests/ts/*.ts"]
+}

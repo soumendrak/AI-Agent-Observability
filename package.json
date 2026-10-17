@@ -1,0 +1,9 @@
+{
+  "name": "tripmate-evals",
+  "private": true,
+  "description": "Type check and parity run for evals/booking_matches.ts",
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "typescript": "5.9.3"
+  }
+}

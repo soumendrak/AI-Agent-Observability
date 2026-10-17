@@ -1,5 +1,6 @@
 import ast
 import io
+import re
 import subprocess
 import sys
 import tokenize
@@ -10,6 +11,13 @@ ROOT = Path(__file__).resolve().parent.parent
 
 ALLOWED_COMMENTS = {("src/tripmate/guards.py", 1, "# >>> WORKSHOP EDIT HERE (Lab 4) <<<")}
 ALLOWED_DOCSTRINGS = {("src/tripmate/guards.py", "validate_booking")}
+
+EVALUATOR = ROOT / "evals" / "booking_matches.py"
+TYPED_EVALUATOR = ROOT / ".standards" / "booking_matches_typed.py"
+CONTRACT_IMPORT = "from tripmate.checks import EvaluationContext, EvaluationResult, Score\n"
+TS_BANNED = re.compile(r"//|/\*|\bany\b")
+TSC = ROOT / "node_modules" / "typescript" / "bin" / "tsc"
+TS_PARITY = ROOT / ".ts-build" / "tests" / "ts" / "parity.js"
 
 Definition = ast.ClassDef | ast.FunctionDef | ast.AsyncFunctionDef
 
@@ -63,6 +71,10 @@ def any_problems(path: Path) -> Iterator[str]:
 
 def source_problems() -> list[str]:
     problems: list[str] = []
+    for path in repo_files(".ts"):
+        for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            if TS_BANNED.search(line):
+                problems.append(f"{relative(path)}:{number}: comment or any in TypeScript")
     for path in repo_files(".py"):
         problems += comment_problems(path)
         problems += docstring_problems(path)
@@ -75,6 +87,20 @@ def run(*command: str) -> bool:
     return subprocess.run(command, cwd=ROOT, check=False).returncode == 0
 
 
+def typed_evaluator() -> str:
+    TYPED_EVALUATOR.parent.mkdir(exist_ok=True)
+    imports, body = EVALUATOR.read_text(encoding="utf-8").split("\n\n", 1)
+    TYPED_EVALUATOR.write_text(f"{imports}\n\n{CONTRACT_IMPORT}\n{body}", "utf-8")
+    return str(TYPED_EVALUATOR)
+
+
+def typescript() -> bool:
+    if not TSC.is_file():
+        print("TypeScript: node_modules missing, run `npm ci` first")
+        return False
+    return run("node", str(TSC), "-p", "tsconfig.json") and run("node", str(TS_PARITY))
+
+
 def main() -> int:
     problems = source_problems()
     for problem in problems:
@@ -83,9 +109,11 @@ def main() -> int:
     python = sys.executable
     results = [
         not problems,
-        run(python, "-m", "ruff", "format", "--check", "."),
-        run(python, "-m", "ruff", "check", "."),
+        run(python, "-m", "ruff", "format", "--check", ".", str(EVALUATOR)),
+        run(python, "-m", "ruff", "check", ".", typed_evaluator()),
         run(python, "-m", "mypy"),
+        run(python, "-m", "mypy", typed_evaluator()),
+        typescript(),
         run(python, "-m", "pytest", "--cov", "--cov-report=term-missing"),
     ]
     if all(results):
