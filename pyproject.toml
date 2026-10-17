@@ -1,0 +1,48 @@
+[project]
+name = "tripmate"
+version = "0.1.0"
+description = "TripMate, the scripted travel agent for the AI Agent Observability workshop"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "mypy>=2.4.0",
+    "pytest>=9.1.1",
+    "pytest-cov>=7.1.0",
+    "ruff>=0.17.1",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/tripmate"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF", "PTH", "C4", "PIE", "RET"]
+
+[tool.mypy]
+strict = true
+disallow_any_explicit = true
+mypy_path = "src"
+files = ["src", "tests", "scripts"]
+
+[tool.pytest.ini_options]
+addopts = "--strict-markers --strict-config"
+testpaths = ["tests"]
+
+[tool.coverage.run]
+branch = true
+source = ["tripmate"]
+
+[tool.coverage.report]
+fail_under = 100
+show_missing = true
+skip_covered = true
