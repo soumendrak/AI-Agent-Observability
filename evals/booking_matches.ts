@@ -22,8 +22,9 @@ function clean(record: Record<string, unknown>, field: string): [string | null, 
   if (field === "date") {
     if (!ISO_DATE.test(value)) return [null, "invalid"];
     const [y, m, d] = value.split("-").map(Number);
-    const dt = new Date(Date.UTC(y, m - 1, d));
-    if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== m - 1 || dt.getUTCDate() !== d) {
+    const dt = new Date(0);
+    dt.setUTCFullYear(y, m - 1, d);
+    if (y < 1 || dt.getUTCFullYear() !== y || dt.getUTCMonth() !== m - 1 || dt.getUTCDate() !== d) {
       return [null, "invalid"];
     }
   } else if (!IATA.test(value)) {

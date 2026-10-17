@@ -25,6 +25,9 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["src/tripmate"]
 
+[tool.hatch.build.targets.wheel.force-include]
+"evals/booking_matches.py" = "tripmate/evals/booking_matches.py"
+
 [tool.ruff]
 line-length = 100
 target-version = "py312"
