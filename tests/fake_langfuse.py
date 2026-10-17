@@ -25,7 +25,7 @@ class FakeLangfuse:
         return (s for s in self.spans if s["parent"] == "" and s["name"] == "tripmate")
 
 
-def serve() -> tuple[FakeLangfuse, ThreadingHTTPServer]:
+def serve(accepts_keys: bool = True) -> tuple[FakeLangfuse, ThreadingHTTPServer]:
     fake = FakeLangfuse()
 
     class Handler(BaseHTTPRequestHandler):
@@ -42,7 +42,7 @@ def serve() -> tuple[FakeLangfuse, ThreadingHTTPServer]:
 
         def do_GET(self) -> None:
             url = urlsplit(self.path)
-            if self.public_key() == BROKEN_KEY:
+            if self.public_key() == BROKEN_KEY or not accepts_keys:
                 self.reply(401, {"message": "Invalid credentials"})
             elif self.public_key() == BUSY_KEY:
                 self.reply(503, {"message": "Busy"})

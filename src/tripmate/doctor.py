@@ -13,7 +13,7 @@ from tripmate.request import EXAMPLE
 from tripmate.telemetry import KEYS, Telemetry, from_env
 from tripmate.tools import no_guard
 
-REGIONS = "EU https://cloud.langfuse.com, US https://us.cloud.langfuse.com"
+REGIONS = {"EU": "https://cloud.langfuse.com", "US": "https://us.cloud.langfuse.com"}
 ARRIVAL_CHECKS = 15
 
 
@@ -39,8 +39,7 @@ def _local(python: tuple[int, int]) -> Iterator[str]:
         or "..." in public + secret
     ):
         raise Failed("paste your project's keys into .env (pk-lf-... and sk-lf-...)")
-    if not _is_url(base_url):
-        raise Failed(f"set LANGFUSE_BASE_URL to your region: {REGIONS}")
+    _check_url(base_url)
     yield "keys look right"
     mode = os.environ.get("LLM_MODE", "fake")
     if mode != "fake":
@@ -48,12 +47,31 @@ def _local(python: tuple[int, int]) -> Iterator[str]:
     yield "LLM_MODE=fake"
 
 
-def _is_url(text: str) -> bool:
+def _regions() -> str:
+    return ", ".join(f"{name} {url}" for name, url in REGIONS.items())
+
+
+def _check_url(text: str) -> None:
     try:
         url = httpx.URL(text)
-    except httpx.InvalidURL:
+    except httpx.InvalidURL as error:
+        raise Failed(f"set LANGFUSE_BASE_URL to your region: {_regions()}") from error
+    if url.scheme not in ("http", "https") or not url.host:
+        raise Failed(f"set LANGFUSE_BASE_URL to your region: {_regions()}")
+    if url.path.rstrip("/"):
+        raise Failed(
+            "LANGFUSE_BASE_URL must stop after the host, like https://us.cloud.langfuse.com; "
+            f"remove {url.path.rstrip('/')}"
+        )
+
+
+def _keys_work(base_url: str) -> bool:
+    public, secret = os.environ[KEYS[0]], os.environ[KEYS[1]]
+    try:
+        response = httpx.get(f"{base_url}/api/public/projects", auth=(public, secret), timeout=10)
+    except httpx.HTTPError:
         return False
-    return url.scheme in ("http", "https") and bool(url.host)
+    return response.status_code == 200
 
 
 def _arrived(telemetry: Telemetry, trace_id: str) -> bool:
@@ -75,8 +93,8 @@ def _remote(telemetry: Telemetry, base_url: str) -> Iterator[str]:
     telemetry.langfuse.flush()
     if not _arrived(telemetry, result.trace_id):
         raise Failed(
-            "the hello trace did not arrive in Langfuse within 30 s; a proxy or firewall may "
-            "block /api/public/otel, or work offline with `uv run ws case 0 --exporter console`"
+            "the hello trace has not shown up in Langfuse after 30 s; ingestion may be slow "
+            "right now, so run `uv run ws doctor` again in a minute"
         )
     yield f"hello trace: {base_url.rstrip('/')}/project/{project.id}/traces/{result.trace_id}"
     yield "READY-" + hashlib.sha256(project.id.encode()).hexdigest()[:4].upper()
@@ -89,9 +107,14 @@ def _explain(error: Exception, base_url: str) -> str:
             "TLS inspection, or work offline with `uv run ws case 0 --exporter console`"
         )
     if error.status_code in (401, 403):
+        for name, url in REGIONS.items():
+            if url != base_url.rstrip("/") and _keys_work(url):
+                return (
+                    f"these keys belong to the {name} region: set LANGFUSE_BASE_URL={url} in .env"
+                )
         return (
             f"Langfuse at {base_url} rejected the keys (HTTP {error.status_code}). Keys only "
-            f"work in the region where you made them: {REGIONS}"
+            f"work in the region where you made them: {_regions()}"
         )
     return (
         f"Langfuse at {base_url} answered HTTP {error.status_code}; the service may be busy, "

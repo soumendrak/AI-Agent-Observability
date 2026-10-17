@@ -1,13 +1,27 @@
 import hashlib
+from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
 from conftest import use_keys, ws
-from fake_langfuse import BROKEN_KEY, BUSY_KEY, DROPPED_KEY, FakeLangfuse
+from fake_langfuse import BROKEN_KEY, BUSY_KEY, DROPPED_KEY, FakeLangfuse, serve
 
 from tripmate import doctor
 
-pytestmark = pytest.mark.usefixtures("workshop_shell")
+pytestmark = pytest.mark.usefixtures("workshop_shell", "offline_regions")
+UNREACHABLE = "http://127.0.0.1:9"
+
+
+@pytest.fixture
+def offline_regions(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(doctor, "REGIONS", {"EU": UNREACHABLE, "US": UNREACHABLE})
+
+
+@pytest.fixture
+def other_region() -> Iterator[str]:
+    fake, server = serve(accepts_keys=False)
+    yield fake.url
+    server.shutdown()
 
 
 def fail_line(capsys: pytest.CaptureFixture[str]) -> str:
@@ -74,17 +88,50 @@ def test_base_url_with_bad_port(capsys: pytest.CaptureFixture[str]) -> None:
     assert "set LANGFUSE_BASE_URL to your region" in fail_line(capsys)
 
 
+def test_base_url_with_a_path(capsys: pytest.CaptureFixture[str]) -> None:
+    use_keys("https://us.cloud.langfuse.com/project/abc")
+    assert fail_line(capsys) == (
+        "[FAIL] LANGFUSE_BASE_URL must stop after the host, like https://us.cloud.langfuse.com; "
+        "remove /project/abc"
+    )
+
+
 def test_rejected_keys(capsys: pytest.CaptureFixture[str], fake_langfuse: FakeLangfuse) -> None:
     use_keys(fake_langfuse.url, BROKEN_KEY)
     line = fail_line(capsys)
     assert "rejected the keys (HTTP 401)" in line
-    assert "https://us.cloud.langfuse.com" in line
+    assert f"US {UNREACHABLE}" in line
+
+
+def test_keys_from_the_other_region_are_detected(
+    capsys: pytest.CaptureFixture[str],
+    fake_langfuse: FakeLangfuse,
+    other_region: str,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(doctor, "REGIONS", {"EU": other_region, "US": fake_langfuse.url})
+    use_keys(other_region, "pk-lf-region")
+    assert fail_line(capsys) == (
+        f"[FAIL] these keys belong to the US region: set LANGFUSE_BASE_URL={fake_langfuse.url} "
+        "in .env"
+    )
+
+
+def test_env_saved_as_utf16_by_powershell(
+    capsys: pytest.CaptureFixture[str], fake_langfuse: FakeLangfuse
+) -> None:
+    use_keys(fake_langfuse.url, "pk-lf-utf16")
+    text = Path(".env").read_text(encoding="utf-8")
+    Path(".env").write_text(text, encoding="utf-16")
+    code, out, _ = ws(capsys, "doctor")
+    assert code == 0
+    assert out.splitlines()[-1].startswith("READY-")
 
 
 def test_unreachable(capsys: pytest.CaptureFixture[str]) -> None:
-    use_keys("http://127.0.0.1:9", "pk-lf-unreachable")
+    use_keys(UNREACHABLE, "pk-lf-unreachable")
     line = fail_line(capsys)
-    assert "cannot reach http://127.0.0.1:9 (ConnectError)" in line
+    assert f"cannot reach {UNREACHABLE} (ConnectError)" in line
     assert line.endswith("work offline with `uv run ws case 0 --exporter console`")
 
 
@@ -102,4 +149,7 @@ def test_hello_trace_must_arrive(
 ) -> None:
     monkeypatch.setattr("tripmate.doctor.ARRIVAL_CHECKS", 2)
     use_keys(fake_langfuse.url, DROPPED_KEY)
-    assert "the hello trace did not arrive in Langfuse" in fail_line(capsys)
+    assert fail_line(capsys) == (
+        "[FAIL] the hello trace has not shown up in Langfuse after 30 s; ingestion may be slow "
+        "right now, so run `uv run ws doctor` again in a minute"
+    )
