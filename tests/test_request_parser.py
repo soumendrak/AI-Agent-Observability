@@ -22,3 +22,22 @@ def test_date_is_kept_as_written() -> None:
 def test_unreadable_request() -> None:
     with pytest.raises(ValueError, match="could not read the trip"):
         parse_request("Book me something nice")
+
+
+def test_keywords_in_any_case() -> None:
+    assert parse_request("BOOK HYD TO BLR ON 2026-10-31")["destination"] == "BLR"
+    assert parse_request("Book a flight from HYD To BLR On 2026-10-31!")["origin"] == "HYD"
+
+
+def test_malformed_date_is_kept_whole() -> None:
+    assert parse_request("Book HYD to BLR on 2026-10-31-")["date"] == "2026-10-31-"
+
+
+def test_two_routes_are_rejected() -> None:
+    with pytest.raises(ValueError, match="could not read the trip"):
+        parse_request("Do not book HYD to BLR; book DEL to BOM on 2026-11-02")
+
+
+def test_long_garbage_is_rejected_quickly() -> None:
+    with pytest.raises(ValueError, match="could not read the trip"):
+        parse_request("AAA to BBB " * 20000)
