@@ -11,6 +11,7 @@ Fields = dict[str, str]
 Guard = Callable[[Fields, Fields], None]
 
 GUARD_REJECTION = "does not match request"
+GUARD_ERROR = "error in guards.py"
 
 
 def _schedule() -> list[Fields]:
@@ -46,11 +47,13 @@ def make_tools(requested: Fields, guard: Guard) -> list[BaseTool]:
         _check_date(date)
         try:
             guard(requested, args)
-        except ValueError as error:
-            reason = str(error)
+        except (ValueError, AssertionError) as error:
+            reason = str(error) or "assert failed"
             raise ValueError(
                 reason if GUARD_REJECTION in reason else f"{GUARD_REJECTION}: {reason}"
             ) from error
+        except Exception as error:
+            raise RuntimeError(f"{GUARD_ERROR}: {type(error).__name__}: {error}") from error
         flights = find_flights(origin, destination, date)
         if not flights:
             raise ValueError(f"no flight from {origin} to {destination}")

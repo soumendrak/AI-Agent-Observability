@@ -98,6 +98,79 @@ def test_rerun_of_a_clean_case(capsys: pytest.CaptureFixture[str]) -> None:
     assert out.splitlines()[-1] == PASS
 
 
+def attendee_guard(monkeypatch: pytest.MonkeyPatch, tmp_path: Path, source: str) -> None:
+    guards = tmp_path / "guards.py"
+    guards.write_text(source, encoding="utf-8")
+    monkeypatch.setattr(cli, "GUARDS_FILE", guards)
+
+
+def test_an_assert_in_the_guard_counts_as_a_rejection(
+    capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    attendee_guard(
+        monkeypatch,
+        tmp_path,
+        "def validate_booking(requested, args):\n    assert args == requested\n",
+    )
+    _, out, _ = ws(capsys, "case", "2", "--rerun", "--exporter", "console")
+    lines = out.splitlines()
+    assert "tool book_flight [ERROR] does not match request: assert failed" in out
+    assert "guard: caught mismatch on origin, destination" in lines
+    assert lines[-1] == PASS
+
+
+def test_a_crashing_guard_is_reported_as_an_error(
+    capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    attendee_guard(
+        monkeypatch,
+        tmp_path,
+        "def validate_booking(requested, args):\n    return args.origin\n",
+    )
+    _, out, _ = ws(capsys, "case", "2", "--rerun", "--exporter", "console")
+    lines = out.splitlines()
+    crash = "error in guards.py: AttributeError: 'dict' object has no attribute 'origin'"
+    assert f"tool book_flight [ERROR] {crash}" in out
+    assert f"guard: {crash}" in lines
+    assert "guard: did not reject anything" not in lines
+    assert lines[-1] == "booking_matches_request: not checked; fix the error in guards.py first"
+
+
+@pytest.mark.parametrize(
+    ("source", "message"),
+    [
+        (
+            "import tripmate_helpers\n",
+            "error: guards.py could not be loaded: ModuleNotFoundError: "
+            "No module named 'tripmate_helpers'",
+        ),
+        (
+            "LIMIT = 1 / 0\n",
+            "error: guards.py could not be loaded: ZeroDivisionError: division by zero",
+        ),
+        (
+            "def check_booking(requested, args):\n    return\n",
+            "error: guards.py must define validate_booking(requested, args)",
+        ),
+        (
+            "validate_booking = None\n",
+            "error: guards.py must define validate_booking(requested, args)",
+        ),
+    ],
+)
+def test_guards_file_that_cannot_be_used(
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    source: str,
+    message: str,
+) -> None:
+    attendee_guard(monkeypatch, tmp_path, source)
+    code, _, err = ws(capsys, "case", "2", "--rerun", "--exporter", "console")
+    assert code == 2
+    assert err.strip() == message
+
+
 def test_broken_guards_file_is_reported(
     capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
@@ -160,3 +233,20 @@ def test_trace_url_unavailable_with_bad_keys(
     code, out, _ = ws(capsys, "case", "0")
     assert code == 0
     assert "trace: unavailable (UnauthorizedError); trace id " in out
+
+
+@pytest.mark.parametrize("encoding", ["utf-16-le", "utf-16-be", "utf-8"])
+def test_env_saved_with_a_byte_order_mark_is_read(
+    capsys: pytest.CaptureFixture[str], encoding: str
+) -> None:
+    Path(".env").write_bytes("\ufeffLLM_MODE=openai\n".encode(encoding))
+    code, _, err = ws(capsys, "case", "0", "--exporter", "console")
+    assert code == 2
+    assert "LLM_MODE=openai is not supported" in err
+
+
+def test_env_in_another_encoding_asks_for_utf8(capsys: pytest.CaptureFixture[str]) -> None:
+    Path(".env").write_bytes(b"LANGFUSE_BASE_URL=https://caf\xe9.example\n")
+    code, _, err = ws(capsys, "case", "0", "--exporter", "console")
+    assert code == 2
+    assert err.strip() == "error: .env is not UTF-8 text; open it in an editor and save it as UTF-8"

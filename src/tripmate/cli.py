@@ -6,14 +6,12 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import cast
 
-from dotenv import load_dotenv
-
 from tripmate.agent import RunResult, run_agent
 from tripmate.cases import CASES
 from tripmate.checks import booking_matches_request
 from tripmate.console import render
 from tripmate.request import EXAMPLE, FIELDS
-from tripmate.telemetry import SetupError, Telemetry, console, from_env
+from tripmate.telemetry import SetupError, Telemetry, console, from_env, load_env
 from tripmate.tools import Fields, Guard
 
 GUARDS_FILE = Path(__file__).with_name("guards.py")
@@ -27,14 +25,24 @@ def load_guard(mode: str) -> Guard:
     if mode == "off":
         return _no_guard
     try:
-        return cast(Guard, runpy.run_path(str(GUARDS_FILE))["validate_booking"])
+        names = runpy.run_path(str(GUARDS_FILE))
     except SyntaxError as error:
         raise SetupError(f"guards.py line {error.lineno}: {error.msg}") from error
+    except Exception as error:
+        raise SetupError(
+            f"guards.py could not be loaded: {type(error).__name__}: {error}"
+        ) from error
+    guard = names.get("validate_booking")
+    if not callable(guard):
+        raise SetupError("guards.py must define validate_booking(requested, args)")
+    return cast(Guard, guard)
 
 
 def guard_outcome(result: RunResult, mode: str) -> str:
     if mode == "off":
         return "guard: off"
+    if result.guard_error:
+        return f"guard: {result.guard_error}"
     if result.rejected:
         rejected = result.rejected[0]
         wrong = [f for f in FIELDS if rejected.get(f) != result.requested.get(f)]
@@ -45,6 +53,8 @@ def guard_outcome(result: RunResult, mode: str) -> str:
 
 
 def local_check(result: RunResult) -> str:
+    if result.guard_error:
+        return "booking_matches_request: not checked; fix the error in guards.py first"
     score = booking_matches_request({"requested": result.requested}, result.output)
     verdict = "PASS" if score.value else f"FAIL: {score.comment}"
     return f"booking_matches_request: {verdict} (local check, same logic as the Langfuse evaluator)"
@@ -79,8 +89,8 @@ def parser() -> argparse.ArgumentParser:
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = parser().parse_args(argv)
-    load_dotenv(Path.cwd() / ".env")
     try:
+        load_env(Path.cwd() / ".env")
         mode = os.environ.get("LLM_MODE", "fake")
         if mode != "fake":
             raise SetupError(f"LLM_MODE={mode} is not supported; set LLM_MODE=fake in .env")
