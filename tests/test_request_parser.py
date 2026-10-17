@@ -41,3 +41,9 @@ def test_two_routes_are_rejected() -> None:
 def test_long_garbage_is_rejected_quickly() -> None:
     with pytest.raises(ValueError, match="could not read the trip"):
         parse_request("AAA to BBB " * 20000)
+
+
+@pytest.mark.parametrize("code", ["H\u0131D", "H\u0130D", "H\u212aD"])
+def test_airport_codes_are_ascii_letters_only(code: str) -> None:
+    with pytest.raises(ValueError, match="could not read the trip"):
+        parse_request(f"Book {code} to BLR on 2026-10-31")

@@ -6,7 +6,7 @@ EXAMPLE = "Book HYD to BLR on 2026-10-31"
 _PATTERN = re.compile(
     r"(?:please\s+)?(?:book\s+)?(?:a\s+flight\s+)?(?:from\s+)?"
     r"([a-z]{3})\s+to\s+([a-z]{3})\s+on\s+(\S+?)[.!?]?",
-    re.IGNORECASE,
+    re.IGNORECASE | re.ASCII,
 )
 
 
