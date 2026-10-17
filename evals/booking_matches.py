@@ -7,10 +7,14 @@ IATA = re.compile(r"^[A-Z]{3}$")
 ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 
+def _reject_constant(name: str) -> object:
+    raise ValueError(f"not JSON: {name}")
+
+
 def _obj(value: object) -> dict[str, object]:
     if isinstance(value, str):
         try:
-            value = json.loads(value)
+            value = json.loads(value, parse_constant=_reject_constant)
         except ValueError:
             return {}
     return value if isinstance(value, dict) else {}

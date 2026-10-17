@@ -3,7 +3,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import cast
 
-EVALUATOR = Path(__file__).resolve().parents[2] / "evals" / "booking_matches.py"
+_HERE = Path(__file__).resolve().parent
+_CANDIDATES = (_HERE.parents[1] / "evals", _HERE / "evals")
+EVALUATOR = next(
+    d / "booking_matches.py" for d in _CANDIDATES if (d / "booking_matches.py").is_file()
+)
 
 
 @dataclass
