@@ -8,21 +8,21 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 
-ALLOWED_COMMENTS = {("src/tripmate/guards.py", "# >>> WORKSHOP EDIT HERE (Lab 4) <<<")}
+ALLOWED_COMMENTS = {("src/tripmate/guards.py", 1, "# >>> WORKSHOP EDIT HERE (Lab 4) <<<")}
 ALLOWED_DOCSTRINGS = {("src/tripmate/guards.py", "validate_booking")}
 
-DocNode = ast.Module | ast.ClassDef | ast.FunctionDef | ast.AsyncFunctionDef
+Definition = ast.ClassDef | ast.FunctionDef | ast.AsyncFunctionDef
 
 
 def repo_files(suffix: str) -> list[Path]:
     listed = subprocess.run(
-        ["git", "ls-files", "--cached", "--others", "--exclude-standard", f"*{suffix}"],
+        ["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard", f"*{suffix}"],
         cwd=ROOT,
         capture_output=True,
         text=True,
         check=True,
-    ).stdout.split()
-    return [ROOT / name for name in listed if (ROOT / name).is_file()]
+    ).stdout.split("\0")
+    return [ROOT / name for name in listed if name and (ROOT / name).is_file()]
 
 
 def relative(path: Path) -> str:
@@ -32,21 +32,26 @@ def relative(path: Path) -> str:
 def comment_problems(path: Path) -> Iterator[str]:
     source = path.read_text(encoding="utf-8")
     for token in tokenize.generate_tokens(io.StringIO(source).readline):
-        if (
-            token.type == tokenize.COMMENT
-            and (relative(path), token.string) not in ALLOWED_COMMENTS
-        ):
+        allowed = (relative(path), token.start[0], token.string) in ALLOWED_COMMENTS
+        if token.type == tokenize.COMMENT and not allowed:
             yield f"{relative(path)}:{token.start[0]}: comment"
+
+
+def documented(body: list[ast.stmt], prefix: str) -> Iterator[tuple[str, int]]:
+    for node in body:
+        if isinstance(node, Definition):
+            name = f"{prefix}{node.name}"
+            if ast.get_docstring(node) is not None:
+                yield name, node.lineno
+            yield from documented(node.body, f"{name}.")
 
 
 def docstring_problems(path: Path) -> Iterator[str]:
     tree = ast.parse(path.read_text(encoding="utf-8"))
-    for node in ast.walk(tree):
-        if not isinstance(node, DocNode) or ast.get_docstring(node) is None:
-            continue
-        name = getattr(node, "name", "<module>")
+    found = [("<module>", 1)] if ast.get_docstring(tree) is not None else []
+    for name, line in found + list(documented(tree.body, "")):
         if (relative(path), name) not in ALLOWED_DOCSTRINGS:
-            yield f"{relative(path)}:{getattr(node, 'lineno', 1)}: docstring in {name}"
+            yield f"{relative(path)}:{line}: docstring in {name}"
 
 
 def any_problems(path: Path) -> Iterator[str]:
