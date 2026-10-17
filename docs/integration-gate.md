@@ -169,3 +169,13 @@ Use this if step 3 or 4 fails: the evaluator can't read the fields, the rule doe
 4. Restore the shipped guard: `git checkout -- src/tripmate/guards.py`.
 
 `--score sdk` refuses `--exporter console`, since offline runs send nothing.
+
+## Pre-gate API check (Sat 17 Oct 2026, US project `tripmate-workshop`)
+
+What a fresh Langfuse Cloud organization accepts, checked with SDK 5.0.2:
+
+- Traces from `ws case 0`, `ws case 1`, `ws case 2 --guard off` and `ws case 2 --rerun` arrive within seconds. Root `tripmate` is `AGENT` with `isRootObservation=true`. The failed `book_flight` spans have level `ERROR` with the tool's message as `statusMessage`.
+- `GET /api/public/v2/observations?traceId=...&isRootObservation=true&fields=core,basic,io` returns `input` and `output` as **JSON strings**, not objects (by design in v2). `input` holds `requested` and `message`; `output` holds `booking` and `final_message`. The evaluator accepts both strings and objects, and gives the expected result on the strings it fetched.
+- `--score sdk` scores show up in `GET /api/public/v3/scores?traceId=...&fields=details,subject` as `BOOLEAN` `true`/`false`, source `API`, attached to the root observation (`subject.kind = observation`), with the mismatch text as `comment`.
+- Organizations created on or after 16 Sep 2026 get **HTTP 410** `LEGACY_API_UNAVAILABLE_FOR_NEW_ORGANIZATION` from `GET /api/public/traces/{id}`, `/api/public/observations` and `/api/public/scores` (v1 and v2). Use Observations v2 and Scores v3. `ws doctor` only uses the projects API and Observations v2.
+- Langfuse will shut down the legacy ingestion API on 16 Nov 2026. That doesn't affect us: traces go over OTLP, and the docs say the score-create events from the SDK stay supported.

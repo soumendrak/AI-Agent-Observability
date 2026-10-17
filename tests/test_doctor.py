@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 from conftest import use_keys, ws
-from fake_langfuse import BROKEN_KEY, FakeLangfuse
+from fake_langfuse import BROKEN_KEY, BUSY_KEY, DROPPED_KEY, FakeLangfuse
 
 from tripmate import doctor
 
@@ -46,6 +46,11 @@ def test_example_keys(capsys: pytest.CaptureFixture[str]) -> None:
     assert "paste your project's keys" in fail_line(capsys)
 
 
+def test_secret_key_placeholder(capsys: pytest.CaptureFixture[str]) -> None:
+    use_keys("https://cloud.langfuse.com", "pk-lf-1234", "sk-lf-...")
+    assert "paste your project's keys" in fail_line(capsys)
+
+
 def test_swapped_keys(capsys: pytest.CaptureFixture[str]) -> None:
     use_keys("https://cloud.langfuse.com", "sk-lf-1", "pk-lf-1")
     assert "the keys are swapped" in fail_line(capsys)
@@ -53,6 +58,11 @@ def test_swapped_keys(capsys: pytest.CaptureFixture[str]) -> None:
 
 def test_base_url_without_scheme(capsys: pytest.CaptureFixture[str]) -> None:
     use_keys("cloud.langfuse.com")
+    assert "set LANGFUSE_BASE_URL to your region" in fail_line(capsys)
+
+
+def test_base_url_with_bad_port(capsys: pytest.CaptureFixture[str]) -> None:
+    use_keys("https://cloud.langfuse.com:notaport")
     assert "set LANGFUSE_BASE_URL to your region" in fail_line(capsys)
 
 
@@ -66,3 +76,20 @@ def test_rejected_keys(capsys: pytest.CaptureFixture[str], fake_langfuse: FakeLa
 def test_unreachable(capsys: pytest.CaptureFixture[str]) -> None:
     use_keys("http://127.0.0.1:9", "pk-lf-unreachable")
     assert "cannot reach http://127.0.0.1:9 (ConnectError)" in fail_line(capsys)
+
+
+def test_busy_service_is_not_blamed_on_the_keys(
+    capsys: pytest.CaptureFixture[str], fake_langfuse: FakeLangfuse
+) -> None:
+    use_keys(fake_langfuse.url, BUSY_KEY)
+    line = fail_line(capsys)
+    assert "answered HTTP 503; the service may be busy" in line
+    assert "rejected" not in line
+
+
+def test_hello_trace_must_arrive(
+    capsys: pytest.CaptureFixture[str], fake_langfuse: FakeLangfuse, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr("tripmate.doctor.ARRIVAL_CHECKS", 2)
+    use_keys(fake_langfuse.url, DROPPED_KEY)
+    assert "the hello trace did not arrive in Langfuse" in fail_line(capsys)

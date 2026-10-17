@@ -51,6 +51,7 @@ def workshop_shell(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     for key in ("LANGFUSE_PUBLIC_KEY", "LANGFUSE_SECRET_KEY", "LANGFUSE_BASE_URL", "LLM_MODE"):
         monkeypatch.delenv(key, raising=False)
     monkeypatch.setattr("tripmate.llm.sleep", lambda seconds: None)
+    monkeypatch.setattr("tripmate.doctor.sleep", lambda seconds: None)
 
 
 def ws(capsys: pytest.CaptureFixture[str], *argv: str) -> tuple[int, str, str]:

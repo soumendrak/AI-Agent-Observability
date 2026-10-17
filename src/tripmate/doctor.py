@@ -1,7 +1,9 @@
 import hashlib
 import os
 from collections.abc import Iterator
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from time import sleep
 
 import httpx
 from langfuse.api.core.api_error import ApiError
@@ -12,6 +14,7 @@ from tripmate.telemetry import KEYS, Telemetry, from_env
 from tripmate.tools import no_guard
 
 REGIONS = "EU https://cloud.langfuse.com, US https://us.cloud.langfuse.com"
+ARRIVAL_CHECKS = 15
 
 
 class Failed(Exception):
@@ -30,40 +33,78 @@ def _local(python: tuple[int, int]) -> Iterator[str]:
     public, secret, base_url = (os.environ.get(key, "") for key in KEYS)
     if public.startswith("sk-lf-") and secret.startswith("pk-lf-"):
         raise Failed("the keys are swapped; LANGFUSE_PUBLIC_KEY starts with pk-lf-")
-    if not public.startswith("pk-lf-") or not secret.startswith("sk-lf-") or "..." in public:
+    if (
+        not public.startswith("pk-lf-")
+        or not secret.startswith("sk-lf-")
+        or "..." in public + secret
+    ):
         raise Failed("paste your project's keys into .env (pk-lf-... and sk-lf-...)")
-    if not base_url.startswith(("https://", "http://")):
+    if not _is_url(base_url):
         raise Failed(f"set LANGFUSE_BASE_URL to your region: {REGIONS}")
     yield "keys look right"
 
 
-def _remote(telemetry: Telemetry, base_url: str) -> Iterator[str]:
+def _is_url(text: str) -> bool:
     try:
-        projects = telemetry.langfuse.api.projects.get()
-    except ApiError as error:
-        raise Failed(
-            f"Langfuse at {base_url} rejected the keys (HTTP {error.status_code}). Keys only "
-            f"work in the region where you made them: {REGIONS}"
-        ) from error
-    except httpx.HTTPError as error:
-        raise Failed(
-            f"cannot reach {base_url} ({type(error).__name__}): check wifi, proxy, VPN or "
-            "TLS inspection, or work offline with --exporter console"
-        ) from error
-    project = projects.data[0]
+        url = httpx.URL(text)
+    except httpx.InvalidURL:
+        return False
+    return url.scheme in ("http", "https") and bool(url.host)
+
+
+def _arrived(telemetry: Telemetry, trace_id: str) -> bool:
+    since = datetime.now(UTC) - timedelta(minutes=10)
+    for _ in range(ARRIVAL_CHECKS):
+        roots = telemetry.langfuse.api.observations.get_many(
+            trace_id=trace_id, is_root_observation=True, from_start_time=since
+        )
+        if roots.data:
+            return True
+        sleep(2)
+    return False
+
+
+def _remote(telemetry: Telemetry, base_url: str) -> Iterator[str]:
+    project = telemetry.langfuse.api.projects.get().data[0]
     yield f"Langfuse project {project.name} at {base_url}"
     result = run_agent(EXAMPLE, 0, no_guard, telemetry, latency_scale=0)
     telemetry.langfuse.flush()
+    if not _arrived(telemetry, result.trace_id):
+        raise Failed(
+            "the hello trace did not arrive in Langfuse within 30 s; a proxy or firewall may "
+            "block /api/public/otel, or work offline with --exporter console"
+        )
     yield f"hello trace: {telemetry.trace_url(result.trace_id)}"
     yield "READY-" + hashlib.sha256(project.id.encode()).hexdigest()[:4].upper()
+
+
+def _explain(error: Exception, base_url: str) -> str:
+    if not isinstance(error, ApiError):
+        return (
+            f"cannot reach {base_url} ({type(error).__name__}): check wifi, proxy, VPN or "
+            "TLS inspection, or work offline with --exporter console"
+        )
+    if error.status_code in (401, 403):
+        return (
+            f"Langfuse at {base_url} rejected the keys (HTTP {error.status_code}). Keys only "
+            f"work in the region where you made them: {REGIONS}"
+        )
+    return (
+        f"Langfuse at {base_url} answered HTTP {error.status_code}; the service may be busy, "
+        "try again in a minute or work offline with --exporter console"
+    )
 
 
 def run(python: tuple[int, int]) -> int:
     try:
         for line in _local(python):
             print(f"[OK] {line}")
-        for line in _remote(from_env(), os.environ["LANGFUSE_BASE_URL"]):
+        base_url = os.environ["LANGFUSE_BASE_URL"]
+        for line in _remote(from_env(), base_url):
             print(line if line.startswith("READY-") else f"[OK] {line}")
+    except (ApiError, httpx.HTTPError) as error:
+        print(f"[FAIL] {_explain(error, base_url)}")
+        return 1
     except Failed as error:
         print(f"[FAIL] {error}")
         return 1
