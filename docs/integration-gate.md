@@ -19,11 +19,11 @@ Keep a notes file open. Each step says what to record.
 3. Install uv if needed:
    - macOS/Linux: `curl -LsSf https://astral.sh/uv/install.sh | sh`
    - Windows: `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`
-4. Clone and install. Until the PR stack is merged, the gate kit is on branch `m9-load` (PR #5):
+4. Clone and install. Until the PR stack is merged, the gate kit is on branch `m6-doctor` (PR #6, the top of the stack):
    ```
    git clone https://github.com/soumendrak/AI-Agent-Observability gate-check
    cd gate-check
-   git checkout m9-load
+   git checkout m6-doctor
    uv sync
    ```
 5. Create `.env`:
