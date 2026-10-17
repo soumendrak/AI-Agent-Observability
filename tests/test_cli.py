@@ -1,9 +1,9 @@
 import json
-from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
-from fake_langfuse import BROKEN_KEY, FakeLangfuse, serve
+from conftest import use_keys, ws
+from fake_langfuse import BROKEN_KEY, FakeLangfuse
 
 from tripmate import cli
 
@@ -11,33 +11,7 @@ REFERENCE = Path(__file__).with_name("reference_guard.py")
 PASS = "booking_matches_request: PASS (local check, same logic as the Langfuse evaluator)"
 
 
-@pytest.fixture(scope="session")
-def fake_langfuse() -> Iterator[FakeLangfuse]:
-    fake, server = serve()
-    yield fake
-    server.shutdown()
-
-
-@pytest.fixture(autouse=True)
-def workshop_shell(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    monkeypatch.chdir(tmp_path)
-    for key in ("LANGFUSE_PUBLIC_KEY", "LANGFUSE_SECRET_KEY", "LANGFUSE_BASE_URL", "LLM_MODE"):
-        monkeypatch.delenv(key, raising=False)
-    monkeypatch.setattr("tripmate.llm.sleep", lambda seconds: None)
-
-
-def ws(capsys: pytest.CaptureFixture[str], *argv: str) -> tuple[int, str, str]:
-    code = cli.main(argv)
-    captured = capsys.readouterr()
-    return code, captured.out, captured.err
-
-
-def use_keys(fake: FakeLangfuse, public_key: str = "pk-lf-test") -> None:
-    Path(".env").write_text(
-        f"LANGFUSE_PUBLIC_KEY={public_key}\nLANGFUSE_SECRET_KEY=sk-lf-test\n"
-        f"LANGFUSE_BASE_URL={fake.url}\nLLM_MODE=fake\n",
-        encoding="utf-8",
-    )
+pytestmark = pytest.mark.usefixtures("workshop_shell")
 
 
 def test_case_2_console_tree_solves_offline(capsys: pytest.CaptureFixture[str]) -> None:
@@ -137,7 +111,7 @@ def test_only_the_fake_llm_is_supported(capsys: pytest.CaptureFixture[str]) -> N
 def test_langfuse_mode_sends_the_trace_and_prints_its_url(
     capsys: pytest.CaptureFixture[str], fake_langfuse: FakeLangfuse
 ) -> None:
-    use_keys(fake_langfuse)
+    use_keys(fake_langfuse.url)
     code, out, _ = ws(capsys, "case", "2")
     assert code == 0
     url = next(line for line in out.splitlines() if line.startswith("trace: "))
@@ -156,7 +130,7 @@ def test_langfuse_mode_sends_the_trace_and_prints_its_url(
 def test_trace_url_unavailable_with_bad_keys(
     capsys: pytest.CaptureFixture[str], fake_langfuse: FakeLangfuse
 ) -> None:
-    use_keys(fake_langfuse, BROKEN_KEY)
+    use_keys(fake_langfuse.url, BROKEN_KEY)
     code, out, _ = ws(capsys, "case", "0")
     assert code == 0
     assert (
@@ -188,7 +162,7 @@ def test_sdk_score_fallback_gives_the_gate_triad(
     fake_langfuse: FakeLangfuse,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    use_keys(fake_langfuse)
+    use_keys(fake_langfuse.url)
     _, case_0, _ = ws(capsys, "case", "0", "--score", "sdk")
     _, case_2, _ = ws(capsys, "case", "2", "--score", "sdk")
     monkeypatch.setattr(cli, "GUARDS_FILE", REFERENCE)
@@ -208,7 +182,7 @@ def test_sdk_score_fallback_gives_the_gate_triad(
 def test_load_with_sdk_scores(
     capsys: pytest.CaptureFixture[str], fake_langfuse: FakeLangfuse
 ) -> None:
-    use_keys(fake_langfuse)
+    use_keys(fake_langfuse.url)
     before = len(fake_langfuse.scores)
     code, _, _ = ws(capsys, "load", "-n", "2", "--case", "2", "--guard", "off", "--score", "sdk")
     assert code == 0

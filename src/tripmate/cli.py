@@ -9,24 +9,21 @@ from typing import cast
 
 from dotenv import load_dotenv
 
+from tripmate import doctor
 from tripmate.agent import RunResult, run_agent
 from tripmate.cases import CASES
 from tripmate.checks import booking_matches_request
 from tripmate.console import render
 from tripmate.request import EXAMPLE, FIELDS
 from tripmate.telemetry import SetupError, Telemetry, console, from_env
-from tripmate.tools import Fields, Guard
+from tripmate.tools import Guard, no_guard
 
 GUARDS_FILE = Path(__file__).with_name("guards.py")
 
 
-def _no_guard(requested: Fields, args: Fields) -> None:
-    return None
-
-
 def load_guard(mode: str) -> Guard:
     if mode == "off":
-        return _no_guard
+        return no_guard
     try:
         return cast(Guard, runpy.run_path(str(GUARDS_FILE))["validate_booking"])
     except SyntaxError as error:
@@ -90,6 +87,7 @@ def parser() -> argparse.ArgumentParser:
     case.add_argument("number", type=int, choices=sorted(CASES))
     case.add_argument("text", nargs="?", default=EXAMPLE)
     case.add_argument("--rerun", action="store_true", help="reload guards.py and check the result")
+    commands.add_parser("doctor", help="check your setup and print your READY code")
     many = commands.add_parser("load", parents=[common], help="run a case many times")
     many.add_argument("-n", type=int, default=50, help="number of runs")
     many.add_argument("--case", dest="number", type=int, choices=sorted(CASES), default=0)
@@ -100,6 +98,8 @@ def parser() -> argparse.ArgumentParser:
 def main(argv: Sequence[str] | None = None) -> int:
     args = parser().parse_args(argv)
     load_dotenv(Path.cwd() / ".env")
+    if args.command == "doctor":
+        return doctor.run((sys.version_info.major, sys.version_info.minor))
     try:
         mode = os.environ.get("LLM_MODE", "fake")
         if mode != "fake":

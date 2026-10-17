@@ -31,7 +31,12 @@ Keep a notes file open. Each step says what to record.
    - Windows: `copy .env.example .env`
 
    Open `.env` and set `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` and `LANGFUSE_BASE_URL` (the region URL from step 1, no trailing slash). Leave `LLM_MODE=fake`.
-6. Offline smoke test, no network needed:
+6. Check the setup:
+   ```
+   uv run ws doctor
+   ```
+   Expect five `[OK]` lines (Python, `.env`, keys, project, hello trace URL) and a `READY-XXXX` code. A `[FAIL]` line names the cause and the fix. Record any failure message, since it feeds M11.
+7. Offline smoke test, no network needed:
    ```
    uv run ws case 2 --exporter console
    ```

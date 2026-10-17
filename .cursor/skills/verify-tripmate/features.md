@@ -11,3 +11,4 @@ All journeys run offline with `--exporter console`. Add `--exporter langfuse` (t
 | Rerun, no-op guard | `uv run ws case 2 --rerun --exporter console` | `guard: no-op`, `booking_matches_request: FAIL: mismatch: ...` |
 | Rerun, reference fix | copy `tests/reference_guard.py` over `src/tripmate/guards.py` in a scratch clone, then `uv run ws case 2 --rerun --exporter console` | `guard: caught mismatch on origin, destination`, `booking_matches_request: PASS ...` |
 | Guard off | same scratch clone, `uv run ws case 2 --rerun --guard off --exporter console` | `guard: off`, FAIL |
+| Doctor, no setup | `uv run ws doctor` in a folder without `.env` | `[FAIL] no .env here; copy .env.example to .env in the repo folder`, exit 1 |
