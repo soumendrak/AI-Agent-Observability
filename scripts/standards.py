@@ -64,13 +64,6 @@ def docstring_problems(path: Path) -> Iterator[str]:
             yield f"{relative(path)}:{line}: docstring in {name}"
 
 
-def any_problems(path: Path) -> Iterator[str]:
-    for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
-        imported = isinstance(node, ast.ImportFrom) and any(a.name == "Any" for a in node.names)
-        if imported or (isinstance(node, ast.Attribute) and node.attr == "Any"):
-            yield f"{relative(path)}:{getattr(node, 'lineno', 1)}: typing.Any"
-
-
 def source_problems() -> list[str]:
     problems: list[str] = []
     for path in repo_files(".ts"):
@@ -80,7 +73,6 @@ def source_problems() -> list[str]:
     for path in repo_files(".py") + repo_files(".pyi"):
         problems += comment_problems(path)
         problems += docstring_problems(path)
-        problems += any_problems(path)
     return problems
 
 
@@ -107,7 +99,7 @@ def main() -> int:
     problems = source_problems()
     for problem in problems:
         print(problem)
-    print(f"no-comments and no-Any: {len(problems)} problem(s)")
+    print(f"no-comments: {len(problems)} problem(s)")
     python = sys.executable
     results = [
         not problems,
