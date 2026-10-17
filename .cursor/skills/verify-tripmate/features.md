@@ -1,5 +1,13 @@
 # Journeys
 
+All journeys run offline with `--exporter console`. Add `--exporter langfuse` (the default) only with real keys in `.env`.
+
 | Journey | Command | Expected |
 |---|---|---|
-| Parse a request | `uv run python -c "from tripmate.request import parse_request; print(parse_request('Book HYD to BLR on 2026-10-31'))"` | `{'origin': 'HYD', 'destination': 'BLR', 'date': '2026-10-31'}` |
+| Parse a request | `uv run ws run "Book DEL to BOM on 2026-11-01" --exporter console` | `TripMate: Booked TM-530 DEL to BOM on 2026-11-01. ...` |
+| Case 0 | `uv run ws case 0 --exporter console` | tree with no `[ERROR]`, `booking` equals `requested` |
+| Case 1 | `uv run ws case 1 --exporter console` | `tool book_flight [ERROR] date must be YYYY-MM-DD`, `booking: null` |
+| Case 2 | `uv run ws case 2 --exporter console` | no `[ERROR]`, `booking` BLR to HYD, final message HYD to BLR |
+| Rerun, no-op guard | `uv run ws case 2 --rerun --exporter console` | `guard: no-op`, `booking_matches_request: FAIL: mismatch: ...` |
+| Rerun, reference fix | copy `tests/reference_guard.py` over `src/tripmate/guards.py` in a scratch clone, then `uv run ws case 2 --rerun --exporter console` | `guard: caught mismatch on origin, destination`, `booking_matches_request: PASS ...` |
+| Guard off | same scratch clone, `uv run ws case 2 --rerun --guard off --exporter console` | `guard: off`, FAIL |

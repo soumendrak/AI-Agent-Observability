@@ -11,7 +11,7 @@ from langgraph.prebuilt import ToolNode, tools_condition
 from tripmate.llm import ScriptedFakeLLM
 from tripmate.request import parse_request
 from tripmate.telemetry import Telemetry
-from tripmate.tools import GUARD_REJECTION, Fields, Guard, make_tools
+from tripmate.tools import GUARD_ERROR, GUARD_REJECTION, Fields, Guard, make_tools
 
 MAX_STEPS = 8
 
@@ -23,11 +23,16 @@ class RunResult:
     final_message: str
     trace_id: str
     rejected: list[Fields] = field(default_factory=list)
+    guard_error: str | None = None
 
     @property
     def output(self) -> dict[str, object]:
         booking = {} if self.booking is None else {"booking": self.booking}
         return {**booking, "final_message": self.final_message}
+
+
+def tool_error(error: Exception) -> str:
+    return f"Error: {error}"
 
 
 def build_graph(
@@ -41,7 +46,7 @@ def build_graph(
 
     graph = StateGraph(MessagesState)
     graph.add_node("agent", agent)
-    graph.add_node("tools", ToolNode(tools, handle_tool_errors=True))
+    graph.add_node("tools", ToolNode(tools, handle_tool_errors=tool_error))
     graph.add_edge(START, "agent")
     graph.add_conditional_edges("agent", tools_condition, ["tools", END])
     graph.add_edge("tools", "agent")
@@ -58,12 +63,16 @@ def summarize(requested: Fields, messages: list[BaseMessage], trace_id: str) -> 
     bookings = [m for m in messages if isinstance(m, ToolMessage) and m.name == "book_flight"]
     booked = [cast(Fields, m.artifact) for m in bookings if m.status == "success"]
     rejected = [args[m.tool_call_id] for m in bookings if GUARD_REJECTION in str(m.content)]
+    crashes = [
+        str(m.content).removeprefix("Error: ") for m in bookings if GUARD_ERROR in str(m.content)
+    ]
     return RunResult(
         requested=requested,
         booking=booked[-1] if booked else None,
         final_message=str(messages[-1].content),
         trace_id=trace_id,
         rejected=rejected,
+        guard_error=crashes[0] if crashes else None,
     )
 
 

@@ -1,8 +1,8 @@
 import json
 import math
 import random
-import time
 from collections.abc import Sequence
+from time import sleep
 
 from langchain_core.callbacks import CallbackManagerForLLMRun
 from langchain_core.language_models import BaseChatModel
@@ -92,7 +92,7 @@ class ScriptedFakeLLM(BaseChatModel):
         run_manager: CallbackManagerForLLMRun | None = None,
         **kwargs: object,
     ) -> ChatResult:
-        time.sleep(self.latency() * self.latency_scale)
+        sleep(self.latency() * self.latency_scale)
         reply = next_reply(CASES[self.case], messages)
         reply.usage_metadata = _usage(messages, reply)
         return ChatResult(generations=[ChatGeneration(message=reply)])
