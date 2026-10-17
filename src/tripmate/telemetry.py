@@ -34,7 +34,8 @@ class Telemetry:
         try:
             url = self.langfuse.get_trace_url(trace_id=trace_id)
         except (ApiError, httpx.HTTPError) as error:
-            return f"unavailable ({type(error).__name__}); trace id {trace_id}"
+            reason = type(error).__name__
+            return f"unavailable ({reason}), check the keys and LANGFUSE_BASE_URL in .env"
         return url or f"unavailable; trace id {trace_id}"
 
 

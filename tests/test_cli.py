@@ -159,7 +159,9 @@ def test_trace_url_unavailable_with_bad_keys(
     use_keys(fake_langfuse, BROKEN_KEY)
     code, out, _ = ws(capsys, "case", "0")
     assert code == 0
-    assert "trace: unavailable (UnauthorizedError); trace id " in out
+    assert (
+        "trace: unavailable (UnauthorizedError), check the keys and LANGFUSE_BASE_URL in .env"
+    ) in out.splitlines()
 
 
 def test_load_runs_a_case_many_times(capsys: pytest.CaptureFixture[str]) -> None:
