@@ -147,6 +147,7 @@ def test_unreadable_request_still_leaves_a_red_root(telemetry: Telemetry) -> Non
     with pytest.raises(ValueError, match="could not read the trip"):
         run_agent("Book me a nice holiday", 0, reference_fix, telemetry, latency_scale=0)
     telemetry.langfuse.flush()
+    assert telemetry.memory is not None
     root = next(
         s
         for s in telemetry.memory.get_finished_spans()
