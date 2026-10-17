@@ -1,7 +1,11 @@
+import codecs
+import io
 import os
 from dataclasses import dataclass
+from pathlib import Path
 
 import httpx
+from dotenv import load_dotenv
 from langfuse import Langfuse
 from langfuse.api.core.api_error import ApiError
 from langfuse.langchain import CallbackHandler
@@ -37,6 +41,20 @@ class Telemetry:
             reason = type(error).__name__
             return f"unavailable ({reason}), check the keys and LANGFUSE_BASE_URL in .env"
         return url or f"unavailable; trace id {trace_id}"
+
+
+def load_env(path: Path) -> None:
+    if not path.is_file():
+        return
+    data = path.read_bytes()
+    utf16 = data.startswith((codecs.BOM_UTF16_LE, codecs.BOM_UTF16_BE))
+    try:
+        text = data.decode("utf-16" if utf16 else "utf-8-sig")
+    except UnicodeDecodeError as error:
+        raise SetupError(
+            ".env is not UTF-8 text; open it in an editor and save it as UTF-8"
+        ) from error
+    load_dotenv(stream=io.StringIO(text))
 
 
 def console() -> Telemetry:
