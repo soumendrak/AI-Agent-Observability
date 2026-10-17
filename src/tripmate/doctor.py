@@ -10,11 +10,11 @@ from langfuse.api.core.api_error import ApiError
 
 from tripmate.agent import run_agent
 from tripmate.request import EXAMPLE
-from tripmate.telemetry import KEYS, Telemetry, from_env
+from tripmate.telemetry import KEYS, SetupError, Telemetry, from_env, load_env
 from tripmate.tools import no_guard
 
 REGIONS = {"EU": "https://cloud.langfuse.com", "US": "https://us.cloud.langfuse.com"}
-ARRIVAL_CHECKS = 15
+ARRIVAL_CHECKS = 16
 
 
 class Failed(Exception):
@@ -27,8 +27,13 @@ def _local(python: tuple[int, int]) -> Iterator[str]:
             f"Python {python[0]}.{python[1]} is running; run `uv sync`, then `uv run ws doctor`"
         )
     yield "Python 3.12"
-    if not (Path.cwd() / ".env").is_file():
+    env = Path.cwd() / ".env"
+    if not env.is_file():
         raise Failed("no .env here; copy .env.example to .env in the repo folder")
+    try:
+        load_env(env)
+    except SetupError as error:
+        raise Failed(str(error)) from error
     yield ".env found"
     public, secret, base_url = (os.environ.get(key, "") for key in KEYS)
     if public.startswith("sk-lf-") and secret.startswith("pk-lf-"):
@@ -76,13 +81,14 @@ def _keys_work(base_url: str) -> bool:
 
 def _arrived(telemetry: Telemetry, trace_id: str) -> bool:
     since = datetime.now(UTC) - timedelta(minutes=10)
-    for _ in range(ARRIVAL_CHECKS):
+    for attempt in range(ARRIVAL_CHECKS):
+        if attempt:
+            sleep(2)
         roots = telemetry.langfuse.api.observations.get_many(
             trace_id=trace_id, is_root_observation=True, from_start_time=since
         )
         if roots.data:
             return True
-        sleep(2)
     return False
 
 

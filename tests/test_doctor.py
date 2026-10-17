@@ -153,3 +153,24 @@ def test_hello_trace_must_arrive(
         "[FAIL] the hello trace has not shown up in Langfuse after 30 s; ingestion may be slow "
         "right now, so run `uv run ws doctor` again in a minute"
     )
+
+
+def test_env_in_another_encoding_fails_like_any_other_check(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    Path(".env").write_bytes(b"LANGFUSE_BASE_URL=https://caf\xe9.example\n")
+    assert fail_line(capsys) == (
+        "[FAIL] .env is not UTF-8 text; open it in an editor and save it as UTF-8"
+    )
+
+
+def test_hello_trace_is_checked_again_at_30_seconds(
+    capsys: pytest.CaptureFixture[str], fake_langfuse: FakeLangfuse, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        "tripmate.doctor.sleep", lambda seconds: fake_langfuse.events.append(f"wait {seconds}")
+    )
+    fake_langfuse.events.clear()
+    use_keys(fake_langfuse.url, DROPPED_KEY)
+    fail_line(capsys)
+    assert fake_langfuse.events == ["check"] + ["wait 2", "check"] * 15

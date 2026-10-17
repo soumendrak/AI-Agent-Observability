@@ -20,6 +20,7 @@ class FakeLangfuse:
     url: str = ""
     spans: list[dict[str, str]] = field(default_factory=list)
     scores: list[dict[str, object]] = field(default_factory=list)
+    events: list[str] = field(default_factory=list)
 
     def roots(self) -> Iterator[dict[str, str]]:
         return (s for s in self.spans if s["parent"] == "" and s["name"] == "tripmate")
@@ -48,6 +49,7 @@ def serve(accepts_keys: bool = True) -> tuple[FakeLangfuse, ThreadingHTTPServer]
                 self.reply(503, {"message": "Busy"})
             elif url.path.endswith("/v2/observations"):
                 trace_id = parse_qs(url.query)["traceId"][0]
+                fake.events.append("check")
                 roots = [
                     {
                         "id": s["span_id"],

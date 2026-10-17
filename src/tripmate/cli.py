@@ -114,10 +114,10 @@ def parser() -> argparse.ArgumentParser:
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = parser().parse_args(argv)
+    if args.command == "doctor":
+        return doctor.run((sys.version_info.major, sys.version_info.minor))
     try:
         load_env(Path.cwd() / ".env")
-        if args.command == "doctor":
-            return doctor.run((sys.version_info.major, sys.version_info.minor))
         mode = os.environ.get("LLM_MODE", "fake")
         if mode != "fake":
             raise SetupError(f"LLM_MODE={mode} is not supported; set LLM_MODE=fake in .env")
