@@ -36,6 +36,11 @@ select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF", "PTH", "C4", "PIE", "RET"
 strict = true
 mypy_path = "src"
 files = ["src", "tests", "scripts"]
+disallow_any_explicit = true
+
+[[tool.mypy.overrides]]
+module = "tripmate.llm"
+disallow_any_explicit = false
 
 [tool.pytest.ini_options]
 addopts = "--strict-markers --strict-config"
