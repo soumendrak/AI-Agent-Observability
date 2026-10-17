@@ -37,19 +37,21 @@ def comment_problems(path: Path) -> Iterator[str]:
             yield f"{relative(path)}:{token.start[0]}: comment"
 
 
-def documented(body: list[ast.stmt], prefix: str) -> Iterator[tuple[str, int]]:
-    for node in body:
-        if isinstance(node, Definition):
-            name = f"{prefix}{node.name}"
-            if ast.get_docstring(node) is not None:
-                yield name, node.lineno
-            yield from documented(node.body, f"{name}.")
+def documented(node: ast.AST, prefix: str) -> Iterator[tuple[str, int]]:
+    for child in ast.iter_child_nodes(node):
+        if isinstance(child, Definition):
+            name = f"{prefix}{child.name}"
+            if ast.get_docstring(child) is not None:
+                yield name, child.lineno
+            yield from documented(child, f"{name}.")
+        else:
+            yield from documented(child, prefix)
 
 
 def docstring_problems(path: Path) -> Iterator[str]:
     tree = ast.parse(path.read_text(encoding="utf-8"))
     found = [("<module>", 1)] if ast.get_docstring(tree) is not None else []
-    for name, line in found + list(documented(tree.body, "")):
+    for name, line in found + list(documented(tree, "")):
         if (relative(path), name) not in ALLOWED_DOCSTRINGS:
             yield f"{relative(path)}:{line}: docstring in {name}"
 
@@ -63,7 +65,7 @@ def any_problems(path: Path) -> Iterator[str]:
 
 def source_problems() -> list[str]:
     problems: list[str] = []
-    for path in repo_files(".py"):
+    for path in repo_files(".py") + repo_files(".pyi"):
         problems += comment_problems(path)
         problems += docstring_problems(path)
         problems += any_problems(path)
