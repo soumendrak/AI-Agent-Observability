@@ -1,5 +1,6 @@
-from collections.abc import Callable, Iterator
+from collections.abc import Iterator
 from pathlib import Path
+from typing import Protocol
 
 import pytest
 from fake_langfuse import FakeLangfuse, serve
@@ -11,7 +12,9 @@ from tripmate.request import EXAMPLE
 from tripmate.telemetry import Telemetry, console
 from tripmate.tools import Guard
 
-Run = Callable[..., RunResult]
+
+class Run(Protocol):
+    def __call__(self, case: int, guard: Guard = ..., text: str = ...) -> RunResult: ...
 
 
 @pytest.fixture
