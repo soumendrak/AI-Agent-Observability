@@ -43,9 +43,7 @@ def search_flights(origin: str, destination: str, date: str) -> str:
 def make_tools(requested: Fields, guard: Guard) -> list[BaseTool]:
     def book_flight(origin: str, destination: str, date: str) -> tuple[str, Fields]:
         args = {"origin": origin, "destination": destination, "date": date}
-        flights = find_flights(origin, destination, date)
-        if not flights:
-            raise ValueError(f"no flight from {origin} to {destination}")
+        _check_date(date)
         try:
             guard(requested, args)
         except ValueError as error:
@@ -53,6 +51,9 @@ def make_tools(requested: Fields, guard: Guard) -> list[BaseTool]:
             raise ValueError(
                 reason if GUARD_REJECTION in reason else f"{GUARD_REJECTION}: {reason}"
             ) from error
+        flights = find_flights(origin, destination, date)
+        if not flights:
+            raise ValueError(f"no flight from {origin} to {destination}")
         flight = flights[0]["flight"]
         pnr = hashlib.sha256(f"{flight}:{date}".encode()).hexdigest()[:6].upper()
         booking = {"pnr": pnr, "flight": flight, **args}

@@ -76,12 +76,17 @@ def run_agent(
     seed: int = 0,
     latency_scale: float = 1.0,
 ) -> RunResult:
-    requested = parse_request(text)
-    llm = ScriptedFakeLLM(case=case, seed=seed, latency_scale=latency_scale)
-    graph = build_graph(llm, make_tools(requested, guard))
     with telemetry.langfuse.start_as_current_observation(
-        name="tripmate", as_type="agent", input={"requested": requested, "message": text}
+        name="tripmate", as_type="agent", input={"message": text}
     ) as root:
+        try:
+            requested = parse_request(text)
+        except ValueError as error:
+            root.update(level="ERROR", status_message=str(error))
+            raise
+        root.update(input={"requested": requested, "message": text})
+        llm = ScriptedFakeLLM(case=case, seed=seed, latency_scale=latency_scale)
+        graph = build_graph(llm, make_tools(requested, guard))
         state = graph.invoke(
             {"messages": [HumanMessage(content=text)]}, config={"callbacks": [telemetry.handler]}
         )

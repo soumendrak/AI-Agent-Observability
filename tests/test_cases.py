@@ -1,9 +1,11 @@
 import json
 from typing import cast
 
+import pytest
 from conftest import Run, tree
 from reference_guard import validate_booking as reference_fix
 
+from tripmate.agent import run_agent
 from tripmate.telemetry import Telemetry
 
 REQUESTED = {"origin": "HYD", "destination": "BLR", "date": "2026-10-31"}
@@ -126,3 +128,30 @@ def test_swapped_route_without_a_return_flight(run: Run) -> None:
     result = run(2, text="Book BLR to MAA on 2026-11-02")
     assert result.booking is None
     assert result.final_message == "Sorry, I couldn't complete the booking."
+
+
+def test_guard_runs_before_the_route_lookup(run: Run) -> None:
+    result = run(2, reference_fix, text="Book BLR to MAA on 2026-11-02")
+    assert result.rejected == [{"origin": "MAA", "destination": "BLR", "date": "2026-11-02"}]
+    assert result.booking is not None
+    assert (result.booking["origin"], result.booking["destination"]) == ("BLR", "MAA")
+
+
+def test_case_1_date_error_comes_before_the_guard(run: Run) -> None:
+    result = run(1, reference_fix)
+    assert result.rejected == []
+    assert result.booking is None
+
+
+def test_unreadable_request_still_leaves_a_red_root(telemetry: Telemetry) -> None:
+    with pytest.raises(ValueError, match="could not read the trip"):
+        run_agent("Book me a nice holiday", 0, reference_fix, telemetry, latency_scale=0)
+    telemetry.langfuse.flush()
+    root = next(
+        s
+        for s in telemetry.memory.get_finished_spans()
+        if (s.attributes or {}).get("langfuse.observation.input")
+        == '{"message": "Book me a nice holiday"}'
+    )
+    attributes = root.attributes or {}
+    assert attributes["langfuse.observation.level"] == "ERROR"
