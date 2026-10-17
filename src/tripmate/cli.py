@@ -63,6 +63,13 @@ def report(args: argparse.Namespace, telemetry: Telemetry, case: int, text: str)
         print(local_check(result))
 
 
+def positive(text: str) -> int:
+    number = int(text)
+    if number < 1:
+        raise argparse.ArgumentTypeError(f"must be 1 or more, got {number}")
+    return number
+
+
 def load(args: argparse.Namespace, telemetry: Telemetry, case: int, text: str) -> None:
     guard, passed = load_guard(args.guard), 0
     for run in range(args.n):
@@ -91,7 +98,7 @@ def parser() -> argparse.ArgumentParser:
     case.add_argument("text", nargs="?", default=EXAMPLE)
     case.add_argument("--rerun", action="store_true", help="reload guards.py and check the result")
     many = commands.add_parser("load", parents=[common], help="run a case many times")
-    many.add_argument("-n", type=int, default=50, help="number of runs")
+    many.add_argument("-n", type=positive, default=50, help="number of runs")
     many.add_argument("--case", dest="number", type=int, choices=sorted(CASES), default=0)
     many.add_argument("text", nargs="?", default=EXAMPLE)
     return root

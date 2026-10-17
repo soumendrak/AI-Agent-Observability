@@ -219,3 +219,11 @@ def test_sdk_score_needs_langfuse(capsys: pytest.CaptureFixture[str]) -> None:
     code, _, err = ws(capsys, "case", "0", "--exporter", "console", "--score", "sdk")
     assert code == 2
     assert "--score sdk sends scores to Langfuse" in err
+
+
+@pytest.mark.parametrize("count", ["0", "-3"])
+def test_load_needs_at_least_one_run(capsys: pytest.CaptureFixture[str], count: str) -> None:
+    with pytest.raises(SystemExit) as stopped:
+        cli.main(["load", "-n", count])
+    assert stopped.value.code == 2
+    assert "must be 1 or more" in capsys.readouterr().err
