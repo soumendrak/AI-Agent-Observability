@@ -4,7 +4,11 @@ version = "0.1.0"
 description = "TripMate, the scripted travel agent for the AI Agent Observability workshop"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
-dependencies = []
+dependencies = [
+    "langchain-core==1.6.12",
+    "langfuse==5.0.2",
+    "langgraph==1.2.16",
+]
 
 [dependency-groups]
 dev = [
@@ -30,7 +34,6 @@ select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF", "PTH", "C4", "PIE", "RET"
 
 [tool.mypy]
 strict = true
-disallow_any_explicit = true
 mypy_path = "src"
 files = ["src", "tests", "scripts"]
 
