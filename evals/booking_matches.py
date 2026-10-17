@@ -5,6 +5,7 @@ from datetime import date
 FIELDS = ("origin", "destination", "date")
 IATA = re.compile(r"^[A-Z]{3}$")
 ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+SPACE = " \t\n\r"
 
 
 def _reject_constant(name: str) -> object:
@@ -22,9 +23,9 @@ def _obj(value: object) -> dict[str, object]:
 
 def _clean(record: dict[str, object], field: str) -> tuple[str | None, str | None]:
     value = record.get(field)
-    if not isinstance(value, str) or not value.strip():
+    if not isinstance(value, str) or not value.strip(SPACE):
         return None, "missing"
-    value = value.strip().upper()
+    value = value.strip(SPACE).upper()
     if field == "date":
         if not ISO_DATE.match(value):
             return None, "invalid"

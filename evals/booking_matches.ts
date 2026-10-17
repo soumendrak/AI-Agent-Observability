@@ -1,6 +1,7 @@
 const FIELDS = ["origin", "destination", "date"] as const;
 const IATA = /^[A-Z]{3}$/;
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+const SPACE = /^[ \t\n\r]+|[ \t\n\r]+$/g;
 
 function obj(value: unknown): Record<string, unknown> {
   if (typeof value === "string") {
@@ -17,8 +18,8 @@ function obj(value: unknown): Record<string, unknown> {
 
 function clean(record: Record<string, unknown>, field: string): [string | null, string | null] {
   const raw = record[field];
-  if (typeof raw !== "string" || raw.trim() === "") return [null, "missing"];
-  const value = raw.trim().toUpperCase();
+  if (typeof raw !== "string" || raw.replace(SPACE, "") === "") return [null, "missing"];
+  const value = raw.replace(SPACE, "").toUpperCase();
   if (field === "date") {
     if (!ISO_DATE.test(value)) return [null, "invalid"];
     const [y, m, d] = value.split("-").map(Number);
