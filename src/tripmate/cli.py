@@ -2,6 +2,7 @@ import argparse
 import os
 import runpy
 import sys
+import time
 from collections.abc import Sequence
 from pathlib import Path
 from typing import cast
@@ -61,7 +62,7 @@ def local_check(result: RunResult) -> str:
 
 
 def report(args: argparse.Namespace, telemetry: Telemetry, case: int, text: str) -> None:
-    result = run_agent(text, case, load_guard(args.guard), telemetry)
+    result = run_agent(text, case, load_guard(args.guard), telemetry, sdk_score=args.score == "sdk")
     if telemetry.memory is not None:
         print(render(telemetry.spans(result.trace_id)))
     print(f"TripMate: {result.final_message}")
@@ -72,10 +73,32 @@ def report(args: argparse.Namespace, telemetry: Telemetry, case: int, text: str)
         print(local_check(result))
 
 
+def positive(text: str) -> int:
+    number = int(text)
+    if number < 1:
+        raise argparse.ArgumentTypeError(f"must be 1 or more, got {number}")
+    return number
+
+
+def load(args: argparse.Namespace, telemetry: Telemetry, case: int, text: str) -> None:
+    guard, passed = load_guard(args.guard), 0
+    for run in range(args.n):
+        started = time.perf_counter()
+        result = run_agent(text, case, guard, telemetry, seed=run, sdk_score=args.score == "sdk")
+        score = booking_matches_request({"requested": result.requested}, result.output)
+        passed += score.value
+        verdict = "PASS" if score.value else "FAIL"
+        print(f"run {run + 1}/{args.n}: {verdict} in {time.perf_counter() - started:.2f}s")
+    print(f"done: {args.n} runs of case {case}, local check PASS {passed}/{args.n}")
+
+
 def parser() -> argparse.ArgumentParser:
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument("--exporter", choices=["langfuse", "console"], default="langfuse")
     common.add_argument("--guard", choices=["on", "off"], default="on")
+    common.add_argument(
+        "--score", choices=["none", "sdk"], default="none", help="sdk: send the local check score"
+    )
     root = argparse.ArgumentParser(prog="ws", description="TripMate workshop commands")
     commands = root.add_subparsers(dest="command", required=True)
     run = commands.add_parser("run", parents=[common], help="run TripMate on your own request")
@@ -84,6 +107,10 @@ def parser() -> argparse.ArgumentParser:
     case.add_argument("number", type=int, choices=sorted(CASES))
     case.add_argument("text", nargs="?", default=EXAMPLE)
     case.add_argument("--rerun", action="store_true", help="reload guards.py and check the result")
+    many = commands.add_parser("load", parents=[common], help="run a case many times")
+    many.add_argument("-n", type=positive, default=50, help="number of runs")
+    many.add_argument("--case", dest="number", type=int, choices=sorted(CASES), default=0)
+    many.add_argument("text", nargs="?", default=EXAMPLE)
     return root
 
 
@@ -94,8 +121,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         mode = os.environ.get("LLM_MODE", "fake")
         if mode != "fake":
             raise SetupError(f"LLM_MODE={mode} is not supported; set LLM_MODE=fake in .env")
+        if args.score == "sdk" and args.exporter == "console":
+            raise SetupError("--score sdk sends scores to Langfuse; drop --exporter console")
         telemetry = console() if args.exporter == "console" else from_env()
-        report(args, telemetry, getattr(args, "number", 0), args.text)
+        command = load if args.command == "load" else report
+        command(args, telemetry, getattr(args, "number", 0), args.text)
         telemetry.langfuse.flush()
     except (SetupError, ValueError) as error:
         print(f"error: {error}", file=sys.stderr)

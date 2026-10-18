@@ -55,9 +55,8 @@ def serve() -> tuple[FakeLangfuse, ThreadingHTTPServer]:
                 self.record_spans(body)
                 self.reply(200, {})
             else:
-                batch = json.loads(body)["batch"]
-                fake.scores += [e["body"] for e in batch if e["type"] == "score-create"]
-                self.reply(207, {"successes": [], "errors": []})
+                fake.scores += json.loads(body)
+                self.reply(202, {"message": "Accepted"})
 
         def record_spans(self, body: bytes) -> None:
             request = ExportTraceServiceRequest.FromString(body)

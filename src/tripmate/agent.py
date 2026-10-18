@@ -8,6 +8,7 @@ from langgraph.graph import END, START, MessagesState, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.prebuilt import ToolNode, tools_condition
 
+from tripmate.checks import booking_matches_request
 from tripmate.llm import ScriptedFakeLLM
 from tripmate.request import parse_request
 from tripmate.telemetry import Telemetry
@@ -84,6 +85,7 @@ def run_agent(
     *,
     seed: int = 0,
     latency_scale: float = 1.0,
+    sdk_score: bool = False,
 ) -> RunResult:
     with telemetry.langfuse.start_as_current_observation(
         name="tripmate", as_type="agent", input={"message": text}
@@ -101,4 +103,12 @@ def run_agent(
         )
         result = summarize(requested, state["messages"], root.trace_id)
         root.update(output=result.output)
+        if sdk_score:
+            check = booking_matches_request({"requested": requested}, result.output)
+            root.score(
+                name=check.name,
+                value=1.0 if check.value else 0.0,
+                data_type="BOOLEAN",
+                comment=check.comment,
+            )
     return result

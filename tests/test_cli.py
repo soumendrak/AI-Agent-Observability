@@ -232,7 +232,74 @@ def test_trace_url_unavailable_with_bad_keys(
     use_keys(fake_langfuse, BROKEN_KEY)
     code, out, _ = ws(capsys, "case", "0")
     assert code == 0
-    assert "trace: unavailable (UnauthorizedError); trace id " in out
+    assert (
+        "trace: unavailable (UnauthorizedError), check the keys and LANGFUSE_BASE_URL in .env"
+    ) in out.splitlines()
+
+
+def test_load_runs_a_case_many_times(capsys: pytest.CaptureFixture[str]) -> None:
+    code, out, _ = ws(
+        capsys, "load", "-n", "3", "--case", "2", "--guard", "off", "--exporter", "console"
+    )
+    lines = out.splitlines()
+    assert code == 0
+    assert [line.split(" in ")[0] for line in lines[:3]] == [
+        "run 1/3: FAIL",
+        "run 2/3: FAIL",
+        "run 3/3: FAIL",
+    ]
+    assert lines[3] == "done: 3 runs of case 2, local check PASS 0/3"
+
+
+def scores_for(fake: FakeLangfuse, out: str) -> list[dict[str, object]]:
+    trace_ids = [line.rsplit("/", 1)[1] for line in out.splitlines() if line.startswith("trace: ")]
+    return [s for t in trace_ids for s in fake.scores if s["traceId"] == t]
+
+
+def test_sdk_score_fallback_gives_the_gate_triad(
+    capsys: pytest.CaptureFixture[str],
+    fake_langfuse: FakeLangfuse,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    use_keys(fake_langfuse)
+    _, case_0, _ = ws(capsys, "case", "0", "--score", "sdk")
+    _, case_2, _ = ws(capsys, "case", "2", "--score", "sdk")
+    monkeypatch.setattr(cli, "GUARDS_FILE", REFERENCE)
+    _, rerun, _ = ws(capsys, "case", "2", "--rerun", "--score", "sdk")
+    scores = [scores_for(fake_langfuse, out) for out in (case_0, case_2, rerun)]
+    assert [[s["value"] for s in found] for found in scores] == [[1.0], [0.0], [1.0]]
+    assert {s["name"] for found in scores for s in found} == {"booking_matches_request"}
+    assert {s["dataType"] for found in scores for s in found} == {"BOOLEAN"}
+    assert scores[1][0]["comment"] == (
+        "mismatch: origin requested=HYD booked=BLR, destination requested=BLR booked=HYD"
+    )
+    trace_id = str(scores[1][0]["traceId"])
+    root = next(r for r in fake_langfuse.roots() if r["trace_id"] == trace_id)
+    assert scores[1][0]["observationId"] == root["span_id"]
+
+
+def test_load_with_sdk_scores(
+    capsys: pytest.CaptureFixture[str], fake_langfuse: FakeLangfuse
+) -> None:
+    use_keys(fake_langfuse)
+    before = len(fake_langfuse.scores)
+    code, _, _ = ws(capsys, "load", "-n", "2", "--case", "2", "--guard", "off", "--score", "sdk")
+    assert code == 0
+    assert [s["value"] for s in fake_langfuse.scores[before:]] == [0.0, 0.0]
+
+
+def test_sdk_score_needs_langfuse(capsys: pytest.CaptureFixture[str]) -> None:
+    code, _, err = ws(capsys, "case", "0", "--exporter", "console", "--score", "sdk")
+    assert code == 2
+    assert "--score sdk sends scores to Langfuse" in err
+
+
+@pytest.mark.parametrize("count", ["0", "-3"])
+def test_load_needs_at_least_one_run(capsys: pytest.CaptureFixture[str], count: str) -> None:
+    with pytest.raises(SystemExit) as stopped:
+        cli.main(["load", "-n", count])
+    assert stopped.value.code == 2
+    assert "must be 1 or more" in capsys.readouterr().err
 
 
 @pytest.mark.parametrize("encoding", ["utf-16-le", "utf-16-be", "utf-8"])
