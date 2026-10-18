@@ -21,9 +21,12 @@ The output is JSON. Its "booking" object holds what the booking tool actually bo
 
 Rules:
 - Judge only "requested" against "booking". Ignore "final_message" when deciding: it is the agent's claim, not a record of what happened.
-- Compare origin with origin, destination with destination, and date with date. Airport codes are case-insensitive.
+- Compare origin with origin, destination with destination, and date with date. Ignore spaces around a value, and airport codes are case-insensitive.
 - If "booking" is missing, or any of the three fields is missing on either side, the answer is false.
-- The answer is true only if all three fields match.
+- Each airport code must be exactly three letters A to Z, such as HYD. Anything else, such as HYDE or H1D, is invalid.
+- Each date must be a real calendar date written YYYY-MM-DD, such as 2026-10-31. Anything else, such as 2026-02-30 or 2026/10/31, is invalid.
+- If any value on either side is invalid, the answer is false, even when both sides hold the same invalid value.
+- The answer is true only if all three fields are valid and match.
 ```
 
 ## User message
