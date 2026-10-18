@@ -6,15 +6,21 @@ import pytest
 from conftest import use_keys, ws
 from fake_langfuse import BROKEN_KEY, BUSY_KEY, DROPPED_KEY, FakeLangfuse, serve
 
-from tripmate import doctor
+from tripmate import checkout, doctor
 
-pytestmark = pytest.mark.usefixtures("workshop_shell", "offline_regions")
+pytestmark = pytest.mark.usefixtures("workshop_shell", "offline_regions", "workshop_clone")
 UNREACHABLE = "http://127.0.0.1:9"
 
 
 @pytest.fixture
 def offline_regions(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(doctor, "REGIONS", {"EU": UNREACHABLE, "US": UNREACHABLE})
+
+
+@pytest.fixture
+def workshop_clone(clone: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    monkeypatch.setattr(checkout, "GUARDS", clone / "guards.py")
+    return clone
 
 
 @pytest.fixture
@@ -35,15 +41,16 @@ def test_ready(capsys: pytest.CaptureFixture[str], fake_langfuse: FakeLangfuse) 
     code, out, _ = ws(capsys, "doctor")
     lines = out.splitlines()
     assert code == 0
-    assert lines[:5] == [
+    assert lines[:6] == [
         "[OK] Python 3.12",
         "[OK] .env found",
         "[OK] keys look right",
         "[OK] LLM_MODE=fake",
+        "[OK] guards.py is the original",
         f"[OK] Langfuse project tripmate-workshop at {fake_langfuse.url}",
     ]
-    assert lines[5].startswith(f"[OK] hello trace: {fake_langfuse.url}/project/proj-test/traces/")
-    assert lines[6] == "READY-" + hashlib.sha256(b"proj-test").hexdigest()[:4].upper()
+    assert lines[6].startswith(f"[OK] hello trace: {fake_langfuse.url}/project/proj-test/traces/")
+    assert lines[7] == "READY-" + hashlib.sha256(b"proj-test").hexdigest()[:4].upper()
 
 
 def test_wrong_python(capsys: pytest.CaptureFixture[str]) -> None:
@@ -190,3 +197,15 @@ def test_keys_for_a_self_hosted_server_never_go_to_the_cloud(
     line = fail_line(capsys)
     assert f"Langfuse at {other_region} rejected the keys (HTTP 401)" in line
     assert "belong to" not in line
+
+
+def test_edited_guards_warns_but_stays_ready(
+    capsys: pytest.CaptureFixture[str], fake_langfuse: FakeLangfuse, workshop_clone: Path
+) -> None:
+    (workshop_clone / "guards.py").write_text("def validate_booking(r, a):\n    1\n", "utf-8")
+    use_keys(fake_langfuse.url, "pk-lf-edited")
+    code, out, _ = ws(capsys, "doctor")
+    lines = out.splitlines()
+    assert code == 0
+    assert lines[4].startswith("[WARN] guards.py differs from the workshop version")
+    assert lines[-1].startswith("READY-")

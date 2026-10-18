@@ -5,7 +5,7 @@ import pytest
 from conftest import use_keys, ws
 from fake_langfuse import BROKEN_KEY, FakeLangfuse
 
-from tripmate import cli
+from tripmate import checkout, cli
 from tripmate.checks import Score, booking_matches_request
 
 REFERENCE = Path(__file__).with_name("reference_guard.py")
@@ -50,7 +50,7 @@ def test_rerun_with_the_no_op_guard_fails(capsys: pytest.CaptureFixture[str]) ->
 def test_rerun_with_the_reference_fix_passes(
     capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr(cli, "GUARDS_FILE", REFERENCE)
+    monkeypatch.setattr(checkout, "GUARDS", REFERENCE)
     _, out, _ = ws(capsys, "case", "2", "--rerun", "--exporter", "console")
     lines = out.splitlines()
     assert "guard: caught mismatch on origin, destination" in lines
@@ -61,7 +61,7 @@ def test_rerun_with_the_reference_fix_passes(
 def test_guard_off_brings_the_bug_back(
     capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr(cli, "GUARDS_FILE", REFERENCE)
+    monkeypatch.setattr(checkout, "GUARDS", REFERENCE)
     _, out, _ = ws(capsys, "case", "2", "--rerun", "--guard", "off", "--exporter", "console")
     assert "guard: off" in out.splitlines()
     assert "booking_matches_request: FAIL" in out
@@ -76,7 +76,7 @@ def test_rerun_of_a_clean_case(capsys: pytest.CaptureFixture[str]) -> None:
 def attendee_guard(monkeypatch: pytest.MonkeyPatch, tmp_path: Path, source: str) -> None:
     guards = tmp_path / "guards.py"
     guards.write_text(source, encoding="utf-8")
-    monkeypatch.setattr(cli, "GUARDS_FILE", guards)
+    monkeypatch.setattr(checkout, "GUARDS", guards)
 
 
 def test_an_assert_in_the_guard_counts_as_a_rejection(
@@ -151,7 +151,7 @@ def test_broken_guards_file_is_reported(
 ) -> None:
     broken = tmp_path / "guards.py"
     broken.write_text("def validate_booking(requested, args)\n    return\n", encoding="utf-8")
-    monkeypatch.setattr(cli, "GUARDS_FILE", broken)
+    monkeypatch.setattr(checkout, "GUARDS", broken)
     code, _, err = ws(capsys, "case", "2", "--rerun", "--exporter", "console")
     assert code == 2
     assert err.startswith("error: guards.py line 1: ")
@@ -241,7 +241,7 @@ def test_sdk_score_fallback_gives_the_gate_triad(
     use_keys(fake_langfuse.url)
     _, case_0, _ = ws(capsys, "case", "0", "--score", "sdk")
     _, case_2, _ = ws(capsys, "case", "2", "--score", "sdk")
-    monkeypatch.setattr(cli, "GUARDS_FILE", REFERENCE)
+    monkeypatch.setattr(checkout, "GUARDS", REFERENCE)
     _, rerun, _ = ws(capsys, "case", "2", "--rerun", "--score", "sdk")
     scores = [scores_for(fake_langfuse, out) for out in (case_0, case_2, rerun)]
     assert [[s["value"] for s in found] for found in scores] == [[1.0], [0.0], [1.0]]

@@ -1,3 +1,4 @@
+import subprocess
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Protocol
@@ -69,3 +70,32 @@ def use_keys(base_url: str, public_key: str = "pk-lf-test", secret_key: str = "s
         f"LANGFUSE_BASE_URL={base_url}\nLLM_MODE=fake\n",
         encoding="utf-8",
     )
+
+
+ORIGINAL = "def validate_booking(requested, args):\n    return\n"
+
+
+GIT_IDENTITY = ("-c", "user.name=t", "-c", "user.email=t@example.com", "-c", "commit.gpgsign=false")
+
+
+def git(folder: Path, *args: str) -> None:
+    subprocess.run(
+        ["git", *GIT_IDENTITY, "-C", str(folder), *args],
+        check=True,
+        capture_output=True,
+    )
+
+
+def commit(folder: Path, text: str, message: str) -> None:
+    (folder / "guards.py").write_text(text, encoding="utf-8")
+    git(folder, "add", "guards.py")
+    git(folder, "commit", "-q", "--allow-empty", "-m", message)
+
+
+@pytest.fixture
+def clone(tmp_path: Path) -> Path:
+    folder = tmp_path / "clone"
+    folder.mkdir()
+    git(folder, "init", "-q")
+    commit(folder, ORIGINAL, "workshop")
+    return folder
