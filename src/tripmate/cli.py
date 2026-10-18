@@ -16,14 +16,12 @@ from tripmate.request import EXAMPLE, FIELDS
 from tripmate.telemetry import SetupError, Telemetry, console, from_env, load_env
 from tripmate.tools import Guard, no_guard
 
-GUARDS_FILE = checkout.GUARDS
-
 
 def load_guard(mode: str) -> Guard:
     if mode == "off":
         return no_guard
     try:
-        names = runpy.run_path(str(GUARDS_FILE))
+        names = runpy.run_path(str(checkout.GUARDS))
     except SyntaxError as error:
         raise SetupError(f"guards.py line {error.lineno}: {error.msg}") from error
     except Exception as error:
