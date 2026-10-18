@@ -14,7 +14,7 @@ EDITED_WARNING = (
     'edit with: git stash push --include-untracked -m "before-workshop"'
 )
 SWITCH = (
-    'git stash push --include-untracked -m "before-workshop", then git fetch --tags, then '
+    'git fetch --tags, then git stash push --include-untracked -m "before-workshop", then '
     f"git checkout {TAG}, then uv sync"
 )
 OFF_TAG_WARNING = f"[WARN] not on the workshop version {TAG}; run: {SWITCH}"

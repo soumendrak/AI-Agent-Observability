@@ -9,7 +9,7 @@ REPO = "https://github.com/soumendrak/AI-Agent-Observability"
 IST = timezone(timedelta(hours=5, minutes=30))
 FREEZE = datetime(2026, 10, 29, 18, 0, tzinfo=IST)
 SWITCH = (
-    'git stash push --include-untracked -m "before-workshop", then git fetch --tags, then '
+    'git fetch --tags, then git stash push --include-untracked -m "before-workshop", then '
     f"git checkout {TAG}, then uv sync"
 )
 

@@ -12,7 +12,7 @@ from tripmate.agent import RunResult, run_agent
 from tripmate.cases import CASES
 from tripmate.checks import booking_matches_request
 from tripmate.console import render
-from tripmate.latency import summary
+from tripmate.latency import runs, summary
 from tripmate.request import EXAMPLE, FIELDS
 from tripmate.telemetry import SetupError, Telemetry, console, from_env, load_env
 from tripmate.tools import Guard, no_guard
@@ -86,7 +86,7 @@ def load(args: argparse.Namespace, telemetry: Telemetry, case: int, text: str) -
         passed += score.value
         verdict = "PASS" if score.value else "FAIL"
         print(f"run {run + 1}/{args.n}: {verdict} in {seconds[-1]:.2f}s")
-    print(f"done: {args.n} runs of case {case}, local check PASS {passed}/{args.n}")
+    print(f"done: {runs(args.n)} of case {case}, local check PASS {passed}/{args.n}")
     print(summary(seconds))
 
 
