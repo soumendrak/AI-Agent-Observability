@@ -175,10 +175,10 @@ def test_missing_env_file(capsys: pytest.CaptureFixture[str]) -> None:
 
 
 def test_only_the_fake_llm_is_supported(capsys: pytest.CaptureFixture[str]) -> None:
-    Path(".env").write_text("LLM_MODE=openai\n", encoding="utf-8")
+    Path(".env").write_text("LLM_MODE=ollama\n", encoding="utf-8")
     code, _, err = ws(capsys, "case", "0", "--exporter", "console")
     assert code == 2
-    assert "LLM_MODE=openai is not supported" in err
+    assert "LLM_MODE=ollama is not supported" in err
 
 
 def test_langfuse_mode_sends_the_trace_and_prints_its_url(
@@ -280,10 +280,10 @@ def test_load_needs_at_least_one_run(capsys: pytest.CaptureFixture[str], count: 
 def test_env_saved_with_a_byte_order_mark_is_read(
     capsys: pytest.CaptureFixture[str], encoding: str
 ) -> None:
-    Path(".env").write_bytes("\ufeffLLM_MODE=openai\n".encode(encoding))
+    Path(".env").write_bytes("\ufeffLLM_MODE=ollama\n".encode(encoding))
     code, _, err = ws(capsys, "case", "0", "--exporter", "console")
     assert code == 2
-    assert "LLM_MODE=openai is not supported" in err
+    assert "LLM_MODE=ollama is not supported" in err
 
 
 def test_env_in_another_encoding_asks_for_utf8(capsys: pytest.CaptureFixture[str]) -> None:

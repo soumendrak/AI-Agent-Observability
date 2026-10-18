@@ -8,6 +8,7 @@ from time import sleep
 import httpx
 from langfuse.api.core.api_error import ApiError
 
+from tripmate import models
 from tripmate.agent import run_agent
 from tripmate.request import EXAMPLE
 from tripmate.telemetry import KEYS, SetupError, Telemetry, from_env, load_env
@@ -47,9 +48,16 @@ def _local(python: tuple[int, int]) -> Iterator[str]:
     _check_url(base_url)
     yield "keys look right"
     mode = os.environ.get("LLM_MODE", "fake")
-    if mode != "fake":
+    if mode == "openai":
+        try:
+            model = models.from_env()
+        except SetupError as error:
+            raise Failed(str(error)) from error
+        yield f"LLM_MODE=openai, model {model.model} at {model.base_url or 'the OpenAI API'}"
+    elif mode != "fake":
         raise Failed(f"LLM_MODE={mode} is not supported; set LLM_MODE=fake in .env")
-    yield "LLM_MODE=fake"
+    else:
+        yield "LLM_MODE=fake"
 
 
 def _regions() -> str:

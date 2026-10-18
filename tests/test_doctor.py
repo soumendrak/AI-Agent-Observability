@@ -74,8 +74,8 @@ def test_swapped_keys(capsys: pytest.CaptureFixture[str]) -> None:
 def test_unsupported_llm_mode(capsys: pytest.CaptureFixture[str]) -> None:
     use_keys("https://cloud.langfuse.com")
     with Path(".env").open("a", encoding="utf-8") as env:
-        env.write("LLM_MODE=openai\n")
-    assert fail_line(capsys) == "[FAIL] LLM_MODE=openai is not supported; set LLM_MODE=fake in .env"
+        env.write("LLM_MODE=ollama\n")
+    assert fail_line(capsys) == "[FAIL] LLM_MODE=ollama is not supported; set LLM_MODE=fake in .env"
 
 
 def test_base_url_without_scheme(capsys: pytest.CaptureFixture[str]) -> None:

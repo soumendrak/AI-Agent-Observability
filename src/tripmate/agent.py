@@ -1,8 +1,16 @@
 from dataclasses import dataclass, field
 from typing import cast
 
-from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, ToolMessage
+from langchain_core.language_models import LanguageModelInput
+from langchain_core.messages import (
+    AIMessage,
+    AnyMessage,
+    BaseMessage,
+    HumanMessage,
+    SystemMessage,
+    ToolMessage,
+)
+from langchain_core.runnables import Runnable
 from langchain_core.tools import BaseTool
 from langgraph.graph import END, START, MessagesState, StateGraph
 from langgraph.graph.state import CompiledStateGraph
@@ -10,6 +18,7 @@ from langgraph.prebuilt import ToolNode, tools_condition
 
 from tripmate.checks import booking_matches_request
 from tripmate.llm import ScriptedFakeLLM
+from tripmate.models import SYSTEM, RealModel
 from tripmate.request import parse_request
 from tripmate.telemetry import Telemetry
 from tripmate.tools import GUARD_ERROR, GUARD_REJECTION, Fields, Guard, make_tools
@@ -37,7 +46,7 @@ def tool_error(error: Exception) -> str:
 
 
 def build_graph(
-    llm: BaseChatModel, tools: list[BaseTool]
+    llm: Runnable[LanguageModelInput, AIMessage], tools: list[BaseTool]
 ) -> CompiledStateGraph[MessagesState, None, MessagesState, MessagesState]:
     def agent(state: MessagesState) -> MessagesState:
         messages = state["messages"]
@@ -86,6 +95,7 @@ def run_agent(
     seed: int = 0,
     latency_scale: float = 1.0,
     sdk_score: bool = False,
+    model: RealModel | None = None,
 ) -> RunResult:
     with telemetry.langfuse.start_as_current_observation(
         name="tripmate", as_type="agent", input={"message": text}
@@ -96,10 +106,16 @@ def run_agent(
             root.update(level="ERROR", status_message=str(error))
             raise
         root.update(input={"requested": requested, "message": text})
-        llm = ScriptedFakeLLM(case=case, seed=seed, latency_scale=latency_scale)
-        graph = build_graph(llm, make_tools(requested, guard))
-        state = graph.invoke(
-            {"messages": [HumanMessage(content=text)]}, config={"callbacks": [telemetry.handler]}
+        tools = make_tools(requested, guard)
+        messages: list[AnyMessage] = [HumanMessage(content=text)]
+        if model is None:
+            llm: Runnable[LanguageModelInput, AIMessage] = ScriptedFakeLLM(
+                case=case, seed=seed, latency_scale=latency_scale
+            )
+        else:
+            llm, messages = model.bind(tools), [SystemMessage(content=SYSTEM), *messages]
+        state = build_graph(llm, tools).invoke(
+            {"messages": messages}, config={"callbacks": [telemetry.handler]}
         )
         result = summarize(requested, state["messages"], root.trace_id)
         root.update(output=result.output)
