@@ -8,7 +8,7 @@ def test_fifty_runs_put_p99_on_the_slowest_run() -> None:
     assert [nearest_rank(seconds, q) for q in (50, 95, 99)] == [0.25, 0.48, 0.50]
     assert summary(seconds) == (
         "latency over 50 runs: mean 0.26s, p50 0.25s, p95 0.48s, p99 0.50s "
-        "(nearest rank; with 50 runs p99 is just the slowest run)"
+        "(nearest rank; under 100 runs p99 is just the slowest run)"
     )
 
 
@@ -21,6 +21,10 @@ def test_one_slow_run_moves_the_mean_but_not_the_median() -> None:
 
 def test_a_single_run() -> None:
     assert nearest_rank([0.4], 99) == 0.4
+    assert summary([0.4]) == (
+        "latency over 1 run: mean 0.40s, p50 0.40s, p95 0.40s, p99 0.40s "
+        "(nearest rank; under 100 runs p99 is just the slowest run)"
+    )
 
 
 def test_no_runs() -> None:
