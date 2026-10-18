@@ -10,7 +10,7 @@ Still stuck after 5 minutes? Ask a TA, or post the exact message in the workshop
 |---|---|
 | `uv: command not found` or `'uv' is not recognized` | Open a new terminal after installing uv. On Windows, close and reopen PowerShell. |
 | PowerShell refuses to run the uv installer | Use the exact installer line from the README; it includes `-ExecutionPolicy ByPass` for that one command. Or install with `winget install --id=astral-sh.uv -e`. |
-| `uv sync` fails with a certificate or TLS error on a work laptop | The network inspects TLS. Try `uv sync --system-certs`, which uses the laptop's own certificate store. If it still fails, use a phone hotspot or pair with someone. |
+| `uv sync` fails with a certificate or TLS error on a work laptop | The network inspects TLS. Try `uv sync --native-tls`, which uses the laptop's own certificate store (newer uv also calls it `--system-certs`). If it still fails, use a phone hotspot or pair with someone. |
 | `git: command not found` | Install git from https://git-scm.com, open a new terminal, and clone again. |
 | `Failed to spawn: ws` from uv | You're not in the repo folder, or `uv sync` didn't finish. `cd AI-Agent-Observability`, run `uv sync`, then try again. |
 
@@ -29,7 +29,7 @@ Doctor stops at the first `[FAIL]`, and each message names its fix. `[WARN]` lin
 | `[FAIL] LANGFUSE_BASE_URL must stop after the host` | You pasted a link from the browser. Keep only the start, for example `https://us.cloud.langfuse.com`, and delete the `/project/...` part. |
 | `[FAIL] LLM_MODE=openai is not supported; set LLM_MODE=fake in .env` | The workshop uses only the scripted model. Set `LLM_MODE=fake`. |
 | `[FAIL] these keys belong to the US region: set LANGFUSE_BASE_URL=https://us.cloud.langfuse.com in .env` | Wrong region. Doctor tried your keys in the other region and they work there. Change `LANGFUSE_BASE_URL` as the message says. |
-| `[FAIL] Langfuse at https://cloud.langfuse.com rejected the keys (HTTP 401)` | The keys don't work in either region. Copy them again from the project settings (no spaces or quotes), or create a new key pair. |
+| `[FAIL] Langfuse at https://cloud.langfuse.com rejected the keys (HTTP 401)` | The keys don't work in this region, and doctor couldn't confirm them in the other one. Check you picked the region where you created the account. Then copy the keys again from the project settings (no spaces or quotes), or create a new key pair. |
 | `[FAIL] cannot reach https://cloud.langfuse.com (ConnectError)` | No connection to Langfuse. Check the wifi. On a work laptop, a proxy, VPN or TLS inspection can block it, so try a hotspot. In the room, carry on with `--exporter console`. |
 | `[FAIL] Langfuse at https://cloud.langfuse.com answered HTTP 503` | Langfuse is busy or down; your setup is fine. Try again in a minute. Check https://status.langfuse.com. |
 | `[FAIL] the hello trace has not shown up in Langfuse after 30 s` | Ingestion is slow right now. Run `uv run ws doctor` again in a minute. |
@@ -68,5 +68,5 @@ Doctor stops at the first `[FAIL]`, and each message names its fix. `[WARN]` lin
 | You see | Fix |
 |---|---|
 | The evaluator test says `missing field: requested.origin` | You tested the wrong observation or an old trace. Pick the root observation named `tripmate` from a fresh run. |
-| Your own script gets HTTP 410 `LEGACY_API_UNAVAILABLE_FOR_NEW_ORGANIZATION` | Organizations created on or after 16 Sep 2026 can't use the old read APIs (`/api/public/traces`, `/api/public/observations`, `/api/public/scores`). Read observations with `GET /api/public/v2/observations` and scores with `GET /api/public/v3/scores`. In v2, `input` and `output` come back as JSON strings, so parse them first. The workshop commands don't use the old APIs. |
+| Your own script gets HTTP 410 `LEGACY_API_UNAVAILABLE_FOR_NEW_ORGANIZATION` | Your organization can't use the deprecated read APIs (`/api/public/traces`, `/api/public/observations`, `/api/public/scores`); Langfuse Cloud removes them for everyone on 16 Nov 2026 ([compatibility](https://langfuse.com/docs/compatibility)). Read observations with `GET /api/public/v2/observations?fields=core,basic,io` (without `io` there's no `input` or `output`) and scores with `GET /api/public/v3/scores`. In v2, `input` and `output` come back as JSON strings, so parse them first. The workshop commands don't use the old APIs. |
 | An alert shows `NO_DATA` | Nothing matched in the window: no scores yet, nobody ran the agent, or the score name is wrong. Compare with the count of `tripmate` traces in the same window. |
