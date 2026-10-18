@@ -14,15 +14,16 @@ Score every booking automatically: compare the structured request with the struc
 2. Paste the whole of `evals/booking_matches.py`.
 3. Target root observations named `tripmate`. Don't save yet.
 4. Test it on your old Case 2 trace (expect false, with a comment) and on your rerun trace (expect true).
-5. Save with a rule on new data, then make some traffic:
+5. Optional, for Lab 6: create the alert from [Lab 6](06-alerts.md) steps 1 to 3 now, before any score exists, so you can watch it go from NO_DATA to ALERT.
+6. Save with a rule on new data, then make some traffic:
    ```
    uv run ws load -n 15 --case 0
    uv run ws load -n 15 --case 2 --guard off
    uv run ws case 2 --rerun
    ```
-6. Filter traces on `booking_matches_request` = false.
+7. Filter traces on `booking_matches_request` = false.
 
-> **Soumen:** screenshots of the evaluator form, the target settings and both test results. If the integration gate picks the SDK-score fallback, this lab changes: read `src/tripmate/checks.py`, then add `--score sdk` to the commands in step 5 and watch the scores arrive.
+> **Soumen:** screenshots of the evaluator form, the target settings and both test results. If the integration gate picks the SDK-score fallback, this lab changes: read `src/tripmate/checks.py`, then add `--score sdk` to the commands in step 6 and watch the scores arrive.
 
 ## Checkpoint
 

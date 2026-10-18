@@ -11,7 +11,7 @@ A customer says TripMate booked the wrong flight. Find the evidence in the trace
 
 ## Steps
 
-Method:
+Method. Each step is a separate check, so clear the previous filter before the next one:
 1. Filter on level = ERROR.
 2. Filter on type = tool.
 3. Sort by duration or tokens.
@@ -28,7 +28,7 @@ The real complaint:
 ```
 uv run ws case 2
 ```
-Nothing is red. Investigate anyway. Fill in worksheet part B (the evidence table) with your partner, then part C (one sentence).
+Nothing is red, so the level filter shows nothing: clear it and carry on with the other steps. Fill in worksheet part B (the evidence table) with your partner, then part C (one sentence).
 
 > **Soumen:** the complaint letter, and screenshots of where the root input, tool input and root output are in the UI. Hints are on the slides, one at a time.
 
