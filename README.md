@@ -62,7 +62,7 @@ You need a laptop you can install software on, git, and a network connection. uv
 | `[FAIL] .env is not UTF-8 text; open it in an editor and save it as UTF-8` | Save `.env` as UTF-8 (UTF-16 from PowerShell is read automatically) |
 | `[FAIL] cannot reach https://cloud.langfuse.com (ConnectError)` | Check the wifi, proxy or VPN; try a hotspot, or work offline with `--exporter console` |
 | `[WARN] guards.py differs from the workshop version` | Before the workshop: `git stash push --include-untracked -m "before-workshop"` |
-| `[WARN] not on the workshop version v2026.10.31` | `git stash push --include-untracked -m "before-workshop"`, then `git fetch --tags`, then `git checkout v2026.10.31`, then `uv sync` |
+| `[WARN] not on the workshop version v2026.10.31` | `git fetch --tags`, then `git stash push --include-untracked -m "before-workshop"`, then `git checkout v2026.10.31`, then `uv sync` |
 | `guard: error in guards.py` | Your Lab 4 edit crashed; the message names the Python error. Use `args["origin"]`, not `args.origin` |
 
 Every message, with more detail, is in [docs/troubleshooting.md](docs/troubleshooting.md).

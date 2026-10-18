@@ -15,8 +15,8 @@ EDIT = 'EARLY_ATTEMPT = "tried Lab 4 at home"'
 NOTE = "my notes from the setup email"
 STASH = ("git", "stash", "push", "--include-untracked", "-m", "before-workshop")
 EMAIL_3 = (
-    STASH,
     ("git", "fetch", "--tags"),
+    STASH,
     ("git", "checkout", TAG),
     ("uv", "sync"),
     ("uv", "run", "ws", "doctor"),

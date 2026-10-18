@@ -309,3 +309,4 @@ def test_load_times_the_run_not_the_local_check(
     monkeypatch.setattr("tripmate.cli.booking_matches_request", slow_check)
     _, out, _ = ws(capsys, "load", "-n", "1", "--exporter", "console")
     assert "run 1/1: PASS in 0.00s" in out.splitlines()
+    assert "done: 1 run of case 0, local check PASS 1/1" in out.splitlines()
