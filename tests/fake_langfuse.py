@@ -5,11 +5,14 @@ import threading
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from urllib.parse import parse_qs, urlsplit
 
 from opentelemetry.proto.collector.trace.v1.trace_service_pb2 import ExportTraceServiceRequest
 
 PROJECT = {"id": "proj-test", "name": "tripmate-workshop", "organization": {"id": "o", "name": "o"}}
 BROKEN_KEY = "pk-lf-broken"
+BUSY_KEY = "pk-lf-busy"
+DROPPED_KEY = "pk-lf-dropped"
 
 
 @dataclass
@@ -17,12 +20,13 @@ class FakeLangfuse:
     url: str = ""
     spans: list[dict[str, str]] = field(default_factory=list)
     scores: list[dict[str, object]] = field(default_factory=list)
+    events: list[str] = field(default_factory=list)
 
     def roots(self) -> Iterator[dict[str, str]]:
         return (s for s in self.spans if s["parent"] == "" and s["name"] == "tripmate")
 
 
-def serve() -> tuple[FakeLangfuse, ThreadingHTTPServer]:
+def serve(accepts_keys: bool = True) -> tuple[FakeLangfuse, ThreadingHTTPServer]:
     fake = FakeLangfuse()
 
     class Handler(BaseHTTPRequestHandler):
@@ -38,8 +42,26 @@ def serve() -> tuple[FakeLangfuse, ThreadingHTTPServer]:
             self.wfile.write(data)
 
         def do_GET(self) -> None:
-            if self.public_key() == BROKEN_KEY:
+            url = urlsplit(self.path)
+            if self.public_key() == BROKEN_KEY or not accepts_keys:
                 self.reply(401, {"message": "Invalid credentials"})
+            elif self.public_key() == BUSY_KEY:
+                self.reply(503, {"message": "Busy"})
+            elif url.path.endswith("/v2/observations"):
+                trace_id = parse_qs(url.query)["traceId"][0]
+                fake.events.append("check")
+                roots = [
+                    {
+                        "id": s["span_id"],
+                        "traceId": s["trace_id"],
+                        "projectId": PROJECT["id"],
+                        "startTime": "2026-10-31T09:00:00Z",
+                        "type": "AGENT",
+                    }
+                    for s in fake.roots()
+                    if s["trace_id"] == trace_id
+                ]
+                self.reply(200, {"data": roots, "meta": {}})
             else:
                 self.reply(200, {"data": [{**PROJECT, "metadata": {}}]})
 
@@ -52,7 +74,8 @@ def serve() -> tuple[FakeLangfuse, ThreadingHTTPServer]:
             if self.headers.get("Content-Encoding") == "gzip":
                 body = gzip.decompress(body)
             if self.path.endswith("/otel/v1/traces"):
-                self.record_spans(body)
+                if self.public_key() != DROPPED_KEY:
+                    self.record_spans(body)
                 self.reply(200, {})
             else:
                 fake.scores += json.loads(body)

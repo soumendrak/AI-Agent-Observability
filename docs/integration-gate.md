@@ -19,11 +19,11 @@ Keep a notes file open. Each step says what to record.
 3. Install uv if needed:
    - macOS/Linux: `curl -LsSf https://astral.sh/uv/install.sh | sh`
    - Windows: `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`
-4. Clone and install. Until the PR stack is merged, the gate kit is on branch `m9-load` (PR #5):
+4. Clone and install. Until the PR stack is merged, the gate kit is on branch `m6-doctor` (PR #6, the top of the stack):
    ```
    git clone https://github.com/soumendrak/AI-Agent-Observability gate-check
    cd gate-check
-   git checkout m9-load
+   git checkout m6-doctor
    uv sync
    ```
 5. Create `.env`:
@@ -31,7 +31,12 @@ Keep a notes file open. Each step says what to record.
    - Windows: `copy .env.example .env`
 
    Open `.env` and set `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` and `LANGFUSE_BASE_URL` (the region URL from step 1, no trailing slash). Leave `LLM_MODE=fake`.
-6. Offline smoke test, no network needed:
+6. Check the setup:
+   ```
+   uv run ws doctor
+   ```
+   Expect six `[OK]` lines (Python, `.env`, keys, `LLM_MODE`, project, hello trace URL) and a `READY-XXXX` code. A `[FAIL]` line names the cause and the fix. Record any failure message, since it feeds M11.
+7. Offline smoke test, no network needed:
    ```
    uv run ws case 2 --exporter console
    ```
@@ -164,3 +169,13 @@ Use this if step 3 or 4 fails: the evaluator can't read the fields, the rule doe
 4. Restore the shipped guard: `git checkout -- src/tripmate/guards.py`.
 
 `--score sdk` refuses `--exporter console`, since offline runs send nothing.
+
+## Pre-gate API check (Sat 17 Oct 2026, US project `tripmate-workshop`)
+
+What a fresh Langfuse Cloud organization accepts, checked with SDK 5.0.2:
+
+- Traces from `ws case 0`, `ws case 1`, `ws case 2 --guard off` and `ws case 2 --rerun` arrive within seconds. Root `tripmate` is `AGENT` with `isRootObservation=true`. The failed `book_flight` spans have level `ERROR` with the tool's message as `statusMessage`.
+- `GET /api/public/v2/observations?traceId=...&isRootObservation=true&fields=core,basic,io` returns `input` and `output` as **JSON strings**, not objects (by design in v2). `input` holds `requested` and `message`; `output` holds `booking` and `final_message`. The evaluator accepts both strings and objects, and gives the expected result on the strings it fetched.
+- `--score sdk` scores show up in `GET /api/public/v3/scores?traceId=...&fields=details,subject` as `BOOLEAN` `true`/`false`, source `API`, attached to the root observation (`subject.kind = observation`), with the mismatch text as `comment`.
+- Organizations created on or after 16 Sep 2026 get **HTTP 410** `LEGACY_API_UNAVAILABLE_FOR_NEW_ORGANIZATION` from `GET /api/public/traces/{id}`, `/api/public/observations` and `/api/public/scores` (v1 and v2). Use Observations v2 and Scores v3. `ws doctor` only uses the projects API and Observations v2.
+- Langfuse will shut down the legacy ingestion API on 16 Nov 2026. That doesn't affect us. Traces go over OTLP (`/api/public/otel/v1/traces`), and SDK 5.0.2 sends `--score sdk` scores with `POST /api/public/scores`, the score-create endpoint, not through the ingestion API.

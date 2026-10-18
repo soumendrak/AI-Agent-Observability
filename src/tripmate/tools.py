@@ -19,6 +19,10 @@ def _schedule() -> list[Fields]:
     return cast(list[Fields], json.loads(text))
 
 
+def no_guard(requested: Fields, args: Fields) -> None:
+    return None
+
+
 def _check_date(date: str) -> None:
     try:
         parsed = calendar_date.fromisoformat(date)
