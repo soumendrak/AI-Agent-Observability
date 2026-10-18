@@ -35,7 +35,7 @@ Keep a notes file open. Each step says what to record.
    ```
    uv run ws doctor
    ```
-   Expect six `[OK]` lines (Python, `.env`, keys, `LLM_MODE`, project, hello trace URL) and a `READY-XXXX` code. A `[FAIL]` line names the cause and the fix. Record any failure message, since it feeds M11.
+   Expect seven `[OK]` lines (Python, `.env`, keys, `LLM_MODE`, `guards.py` is the original, project, hello trace URL) and a `READY-XXXX` code. Once tag `v2026.10.31` exists there is one more line about the version. `[WARN]` lines don't stop READY. A `[FAIL]` line names the cause and the fix. Record any failure message, since it feeds M11.
 7. Offline smoke test, no network needed:
    ```
    uv run ws case 2 --exporter console
