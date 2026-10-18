@@ -83,10 +83,10 @@ def load(args: argparse.Namespace, telemetry: Telemetry, case: int, text: str) -
     for run in range(args.n):
         started = time.perf_counter()
         result = run_agent(text, case, guard, telemetry, seed=run, sdk_score=args.score == "sdk")
+        seconds.append(time.perf_counter() - started)
         score = booking_matches_request({"requested": result.requested}, result.output)
         passed += score.value
         verdict = "PASS" if score.value else "FAIL"
-        seconds.append(time.perf_counter() - started)
         print(f"run {run + 1}/{args.n}: {verdict} in {seconds[-1]:.2f}s")
     print(f"done: {args.n} runs of case {case}, local check PASS {passed}/{args.n}")
     print(summary(seconds))

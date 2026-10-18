@@ -26,3 +26,9 @@ def test_a_single_run() -> None:
 def test_no_runs() -> None:
     with pytest.raises(ValueError, match="no runs"):
         summary([])
+
+
+def test_a_hundred_runs_put_p99_on_the_second_slowest() -> None:
+    seconds = [n / 100 for n in range(1, 101)]
+    assert nearest_rank(seconds, 99) == 0.99
+    assert summary(seconds).endswith("p99 0.99s (nearest rank)")

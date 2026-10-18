@@ -12,7 +12,7 @@ def summary(seconds: Sequence[float]) -> str:
         raise ValueError("no runs to summarise")
     count = len(seconds)
     p50, p95, p99 = (nearest_rank(seconds, q) for q in (50, 95, 99))
-    note = f"; with {count} runs p99 is just the slowest run" if count <= 100 else ""
+    note = f"; with {count} runs p99 is just the slowest run" if count < 100 else ""
     return (
         f"latency over {count} runs: mean {sum(seconds) / count:.2f}s, p50 {p50:.2f}s, "
         f"p95 {p95:.2f}s, p99 {p99:.2f}s (nearest rank{note})"
