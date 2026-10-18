@@ -162,3 +162,13 @@ def test_freeze_is_thursday_evening_in_india() -> None:
     assert checkout.FREEZE.isoformat() == "2026-10-29T18:00:00+05:30"
     assert checkout.now().tzinfo == checkout.FREEZE.tzinfo
     assert isinstance(checkout.now(), datetime)
+
+
+def test_a_copy_inside_another_repository_is_not_a_clone(clone: Path) -> None:
+    copy = clone / "downloads" / "AI-Agent-Observability"
+    copy.mkdir(parents=True)
+    (copy / "guards.py").write_text(ORIGINAL, encoding="utf-8")
+    assert checkout.review(copy / "guards.py") == [
+        "[WARN] this folder is not a git clone, so the final-version steps won't work; "
+        "get the code with: git clone https://github.com/soumendrak/AI-Agent-Observability"
+    ]
