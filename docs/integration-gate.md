@@ -7,7 +7,7 @@ You need three results on the real account:
 | Trace | Command | `booking_matches_request` |
 |---|---|---|
 | Normal run | `uv run ws case 0` | true |
-| Broken booking | `uv run ws case 2` | false, comment `mismatch: origin requested=HYD booked=BLR, destination requested=BLR booked=HYD` |
+| Broken booking | `uv run ws case 2` | false, and the comment starts with `mismatch:` and names the wrong fields (the exact comment is in the instructor copy of this runbook) |
 | Guarded rerun | reference fix applied, `uv run ws case 2 --rerun` | true |
 
 Keep a notes file open. Each step says what to record.
@@ -40,7 +40,7 @@ Keep a notes file open. Each step says what to record.
    ```
    uv run ws case 2 --exporter console
    ```
-   Expect a tree that starts with `agent tripmate OK`, a `booking:` line with `"origin": "BLR", "destination": "HYD"`, and `TripMate: Booked TM-204 HYD to BLR on 2026-10-31. PNR B1EDC2.`
+   Expect a tree that starts with `agent tripmate OK`, no `[ERROR]`, a `booking:` line that differs from `requested`, and a `TripMate: Booked ...` confirmation that reads correctly.
 
 ## 1. Create both alerts first (A9 step 4, part 1)
 
@@ -72,7 +72,7 @@ uv run ws case 2
 
 Each command prints `trace: https://.../project/<id>/traces/<trace id>`. Open both links.
 
-Check on each trace: the root observation is `tripmate` (type agent) with no parent. Its Input shows JSON with `requested` = `{"origin": "HYD", "destination": "BLR", "date": "2026-10-31"}`. Its Output shows JSON with `booking`. For Case 0 the booking is HYD to BLR, for Case 2 it is BLR to HYD while `final_message` still says HYD to BLR.
+Check on each trace: the root observation is `tripmate` (type agent) with no parent. Its Input shows JSON with `requested` = `{"origin": "HYD", "destination": "BLR", "date": "2026-10-31"}`. Its Output shows JSON with `booking`. For Case 0 the booking matches `requested`. For Case 2 it doesn't, while `final_message` still reads correctly.
 
 Record: seconds from command to trace visible (target: about 1 min). Screenshot the root observation of both traces.
 
@@ -88,11 +88,11 @@ uv run ws case 2 --rerun
 Expect:
 ```
 TripMate: Booked TM-204 HYD to BLR on 2026-10-31. PNR DE224B.
-guard: caught mismatch on origin, destination
+guard: caught mismatch on ...
 trace: https://...
 booking_matches_request: PASS (local check, same logic as the Langfuse evaluator)
 ```
-The trace has one red `book_flight` span (`does not match request: origin, destination`) and then a second, green `book_flight`. Keep the fix in place until step 4 is done.
+The trace has one red `book_flight` span (`does not match request: ...`) and then a second, green `book_flight`. Keep the fix in place until step 4 is done.
 
 ## 3. Code evaluator test panel (A9 step 2)
 
@@ -104,7 +104,7 @@ The trace has one red `book_flight` span (`does not match request: origin, desti
 | Sample | Expected result |
 |---|---|
 | Case 0 root | true, `all fields match` |
-| Case 2 root | false, `mismatch: origin requested=HYD booked=BLR, destination requested=BLR booked=HYD` |
+| Case 2 root | false, and the comment starts with `mismatch:` (exact text in the instructor copy of this runbook) |
 | Case 2 rerun root | true, `all fields match` |
 
 Record: three screenshots. If a test says `missing field: requested.origin; ...`, you picked a non-root observation or an old trace.
@@ -177,5 +177,5 @@ What a fresh Langfuse Cloud organization accepts, checked with SDK 5.0.2:
 - Traces from `ws case 0`, `ws case 1`, `ws case 2 --guard off` and `ws case 2 --rerun` arrive within seconds. Root `tripmate` is `AGENT` with `isRootObservation=true`. The failed `book_flight` spans have level `ERROR` with the tool's message as `statusMessage`.
 - `GET /api/public/v2/observations?traceId=...&isRootObservation=true&fields=core,basic,io` returns `input` and `output` as **JSON strings**, not objects (by design in v2). `input` holds `requested` and `message`; `output` holds `booking` and `final_message`. The evaluator accepts both strings and objects, and gives the expected result on the strings it fetched.
 - `--score sdk` scores show up in `GET /api/public/v3/scores?traceId=...&fields=details,subject` as `BOOLEAN` `true`/`false`, source `API`, attached to the root observation (`subject.kind = observation`), with the mismatch text as `comment`.
-- Organizations created on or after 16 Sep 2026 get **HTTP 410** `LEGACY_API_UNAVAILABLE_FOR_NEW_ORGANIZATION` from `GET /api/public/traces/{id}`, `/api/public/observations` and `/api/public/scores` (v1 and v2). Use Observations v2 and Scores v3. `ws doctor` only uses the projects API and Observations v2.
+- The workshop organization gets **HTTP 410** `LEGACY_API_UNAVAILABLE_FOR_NEW_ORGANIZATION` from `GET /api/public/traces/{id}`, `/api/public/observations` and `/api/public/scores` (v1 and v2). Use Observations v2 and Scores v3. `ws doctor` only uses the projects API and Observations v2.
 - Langfuse will shut down the legacy ingestion API on 16 Nov 2026. That doesn't affect us. Traces go over OTLP (`/api/public/otel/v1/traces`), and SDK 5.0.2 sends `--score sdk` scores with `POST /api/public/scores`, the score-create endpoint, not through the ingestion API.
