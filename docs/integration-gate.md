@@ -7,7 +7,7 @@ You need three results on the real account:
 | Trace | Command | `booking_matches_request` |
 |---|---|---|
 | Normal run | `uv run ws case 0` | true |
-| Broken booking | `uv run ws case 2` | false, and the comment starts with `mismatch:` and names the wrong fields (the exact comment is in the instructor copy of this runbook) |
+| Broken booking | `uv run ws case 2` | false, and the comment starts with `mismatch:` and names the wrong fields (`tests/test_eval_parity.py` pins the exact comment, and `tests/test_cases.py` pins the swapped booking behind it) |
 | Guarded rerun | reference fix applied, `uv run ws case 2 --rerun` | true |
 
 Keep a notes file open. Each step says what to record.
@@ -104,7 +104,7 @@ The trace has one red `book_flight` span (`does not match request: ...`) and the
 | Sample | Expected result |
 |---|---|
 | Case 0 root | true, `all fields match` |
-| Case 2 root | false, and the comment starts with `mismatch:` (exact text in the instructor copy of this runbook) |
+| Case 2 root | false, and the comment starts with `mismatch:` (exact text in `tests/test_eval_parity.py`; `tests/test_cases.py` pins the booking) |
 | Case 2 rerun root | true, `all fields match` |
 
 Record: three screenshots. If a test says `missing field: requested.origin; ...`, you picked a non-root observation or an old trace.

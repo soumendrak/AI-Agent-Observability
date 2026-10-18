@@ -35,7 +35,7 @@ Doctor stops at the first `[FAIL]`, and each message names its fix. `[WARN]` lin
 | `[FAIL] the hello trace has not shown up in Langfuse after 30 s` | Ingestion is slow right now. Run `uv run ws doctor` again in a minute. |
 | `[WARN] guards.py differs from the workshop version` | You edited `src/tripmate/guards.py`. That's expected during Lab 4. Before the workshop, set it aside with `git stash push --include-untracked -m "before-workshop"`. |
 | `[WARN] not on the workshop version v2026.10.31` | Switch to the final version with the email 3 commands: `git stash push --include-untracked -m "before-workshop"`, then `git fetch --tags`, then `git checkout v2026.10.31`, then `uv sync`. Git's note about "detached HEAD" is expected. |
-| `[WARN] v2026.10.31 isn't in this clone` | The final version exists but your clone hasn't fetched it. Run the same four commands. |
+| `[WARN] v2026.10.31 isn't in this clone yet` | Your clone hasn't fetched the final version, or it isn't published yet. Run `git fetch --tags`, then `git tag -l v2026.10.31`. If it lists the tag, run the four commands above. If not, the tag isn't out yet: carry on and run `uv run ws doctor` again later. |
 | `[WARN] this folder is not a git clone` | You downloaded a zip. Clone instead with `git clone https://github.com/soumendrak/AI-Agent-Observability`, so the final-version steps work. |
 | `[WARN] git was not found` | Install git from https://git-scm.com, so doctor can check `guards.py` and the version. |
 | `[WARN] git won't read this folder because another user owns it` | The folder was created by another user account (common on shared or copied drives). Run the `git config --global --add safe.directory ...` command the message shows. |

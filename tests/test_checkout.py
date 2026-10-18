@@ -147,7 +147,7 @@ def test_missing_tag_is_flagged_after_the_freeze(
     monkeypatch.setattr(checkout, "now", lambda: checkout.FREEZE)
     assert checkout.review(clone / "guards.py") == [
         "[OK] guards.py is the original",
-        f"[WARN] {TAG} isn't in this clone; run: {SWITCH}",
+        f"[WARN] {TAG} isn't in this clone yet; once it is published, run: {SWITCH}",
     ]
 
 
