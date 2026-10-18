@@ -9,7 +9,7 @@ from typing import cast
 
 import openai
 
-from tripmate import doctor, models
+from tripmate import checkout, doctor, models
 from tripmate.agent import RunResult, run_agent
 from tripmate.cases import CASES
 from tripmate.checks import booking_matches_request
@@ -18,7 +18,6 @@ from tripmate.request import EXAMPLE, FIELDS
 from tripmate.telemetry import SetupError, Telemetry, console, from_env, load_env
 from tripmate.tools import Guard, no_guard
 
-GUARDS_FILE = Path(__file__).with_name("guards.py")
 Model = models.RealModel | None
 
 
@@ -26,7 +25,7 @@ def load_guard(mode: str) -> Guard:
     if mode == "off":
         return no_guard
     try:
-        names = runpy.run_path(str(GUARDS_FILE))
+        names = runpy.run_path(str(checkout.GUARDS))
     except SyntaxError as error:
         raise SetupError(f"guards.py line {error.lineno}: {error.msg}") from error
     except Exception as error:

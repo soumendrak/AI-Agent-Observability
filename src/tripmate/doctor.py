@@ -8,7 +8,7 @@ from time import sleep
 import httpx
 from langfuse.api.core.api_error import ApiError
 
-from tripmate import models
+from tripmate import checkout, models
 from tripmate.agent import run_agent
 from tripmate.request import EXAMPLE
 from tripmate.telemetry import KEYS, SetupError, Telemetry, from_env, load_env
@@ -141,6 +141,8 @@ def run(python: tuple[int, int]) -> int:
     try:
         for line in _local(python):
             print(f"[OK] {line}")
+        for line in checkout.review(checkout.GUARDS):
+            print(line)
         base_url = os.environ["LANGFUSE_BASE_URL"]
         for line in _remote(from_env(), base_url):
             print(line if line.startswith("READY-") else f"[OK] {line}")
