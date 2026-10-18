@@ -45,6 +45,8 @@ def _review(git: str, guards: Path) -> list[str]:
     top = run("rev-parse", "--show-toplevel")
     if top.returncode:
         return [_unreadable(top.stderr)]
+    if run("ls-files", "--error-unmatch", guards.name).returncode:
+        return [_unreadable("")]
     tag = run("rev-parse", "-q", "--verify", f"refs/tags/{TAG}^{{commit}}")
     ref = TAG if tag.returncode == 0 else "HEAD"
     lines = (
