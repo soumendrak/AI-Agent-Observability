@@ -4,7 +4,7 @@ The workshop doesn't teach this part; it's here for Q&A and for afterwards. Unle
 
 ## B0. Percentiles on small samples
 
-For n = 50, the nearest-rank p99 is rank ceil(0.99 × 50) = 50, which is the maximum. numpy's default `method='linear'` puts p99 at 0-based position 0.99 × 49 = 48.51, 51% of the way from the second-largest value to the largest ([numpy.percentile](https://numpy.org/doc/stable/reference/generated/numpy.percentile.html)). The Langfuse pages we read don't say which method Langfuse uses. A p99 you can trust needs hundreds of runs, so use p50 and p95 for small samples. `ws load` prints nearest-rank values.
+For n = 50, the nearest-rank p99 is rank ceil(0.99 × 50) = 50, which is the maximum. numpy's default `method='linear'` puts p99 at 0-based position 0.99 × 49 = 48.51, 51% of the way from the second-largest value to the largest ([numpy.percentile](https://numpy.org/doc/stable/reference/generated/numpy.percentile.html)). The Langfuse pages we read don't say which method Langfuse uses. A p99 you can trust needs hundreds of runs, so use p50 and p95 for small samples. This appendix uses nearest rank, so you can check each value by hand.
 
 ## B1. Reliability compounding
 
@@ -39,7 +39,9 @@ With p = 0.7: pass@3 = 1 − 0.3^3 = 97.3%, and pass^3 = 0.7^3 = 34.3%. Use pass
 | 9/10 | 59.6% to 98.2% |
 | 45/50 | 78.6% to 95.7% |
 | 450/500 | 87.1% to 92.3% |
-| 44/50 vs 46/50 | 76.2% to 94.4% vs 81.2% to 96.8%. They overlap, so this is no evidence of a difference. |
+| 44/50 vs 46/50 | 76.2% to 94.4% vs 81.2% to 96.8% |
+
+To compare two rates, put an interval on the difference itself; don't check whether the two intervals overlap. For 44/50 vs 46/50 the gap is 4 points, with a 95% interval of −8.6 to +16.8 points (Newcombe's method, built from the two Wilson intervals). It includes 0, so 50 runs each can't tell these two apart.
 
 Samples needed for a given margin at p = 0.5: about 384 for ±5 points, and about 1,067 for ±3.
 
@@ -61,7 +63,7 @@ Example rules: `chapters/ch11-alerting-slos/prometheus-alert-rules.yml` in [obse
 
 Uniform 5% sampling keeps about 1 of 20 daily failures. Tail sampling keeps 100% of errors, 100% of slow runs and 5% of normal runs.
 
-Redact prompts, emails and IDs before export, with the transform processor running before tail sampling. Example: `ch9-sampling-pii/otel-collector-config.yaml` in the same series.
+Redact prompts, emails and IDs before export, with the transform processor running before tail sampling. Example: `chapters/ch9-sampling-pii/otel-collector-config.yaml` in the same series.
 
 ## B7. Calibrating an LLM judge
 

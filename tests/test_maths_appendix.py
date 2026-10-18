@@ -14,12 +14,33 @@ def percent(value: float) -> str:
     return f"{value * 100:.1f}%"
 
 
-def wilson(passed: int, runs: int) -> str:
+def bounds(passed: int, runs: int) -> tuple[float, float]:
     share = passed / runs
     scale = 1 + Z * Z / runs
     centre = (share + Z * Z / (2 * runs)) / scale
     half = Z * math.sqrt(share * (1 - share) / runs + Z * Z / (4 * runs * runs)) / scale
-    return f"{percent(centre - half)} to {percent(centre + half)}"
+    return centre - half, centre + half
+
+
+def wilson(passed: int, runs: int) -> str:
+    low, high = bounds(passed, runs)
+    return f"{percent(low)} to {percent(high)}"
+
+
+def test_difference_interval_is_newcombe() -> None:
+    low1, high1 = bounds(44, 50)
+    low2, high2 = bounds(46, 50)
+    first, second = 44 / 50, 46 / 50
+    gap = second - first
+    low = gap - math.hypot(second - low2, high1 - first)
+    high = gap + math.hypot(high2 - second, first - low1)
+    interval = f"{MINUS}{-low * 100:.1f} to +{high * 100:.1f}"
+    assert f"{gap * 100:.0f} points, with a 95% interval of {interval}" in DOC
+    assert low < 0 < high
+
+
+def test_example_paths_are_under_chapters() -> None:
+    assert "`chapters/ch9-sampling-pii/otel-collector-config.yaml`" in DOC
 
 
 @pytest.mark.parametrize(("passed", "runs"), [(9, 10), (45, 50), (450, 500), (44, 50), (46, 50)])
