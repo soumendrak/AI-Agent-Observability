@@ -10,7 +10,7 @@ Score every booking automatically: compare the structured request with the struc
 
 ## Steps
 
-1. Optional, for Lab 6: create the alert from [Lab 6](06-alerts.md) steps 1 to 3 first, before any score exists, so you can watch it go from NO_DATA to ALERT.
+1. Optional, for Lab 6: create the alert from [Lab 6](06-alerts.md) steps 1 to 4 first, before any score exists, so you can watch it go from NO_DATA to ALERT.
 2. In Langfuse, go to Evaluators, then New, then Code evaluator, and choose Python.
 3. Paste the whole of `evals/booking_matches.py`.
 4. Target root observations named `tripmate`. Don't save yet.

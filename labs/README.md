@@ -13,4 +13,4 @@ Each lab has the same sections: goal, when it runs, steps, checkpoint, and what 
 | 6. Alerts (optional) | 02:20 to 02:40 | [06-alerts](06-alerts.md) |
 | Worksheet | Labs 2 and 3 | [worksheet](worksheet.md) |
 
-Working as a pair on one laptop is fine and encouraged. If the wifi or Langfuse is down, add `--exporter console` to any `ws run`, `ws case` or `ws load` command, and the labs still work up to the evaluator.
+Working as a pair on one laptop is fine and encouraged. If the wifi or Langfuse is down, add `--exporter console` to any `ws run`, `ws case` or `ws load` command. You can still run the cases, read the trace tree in the terminal, and get the local check from `--rerun`. The Langfuse views, the evaluator and the alerts then become projector demos.

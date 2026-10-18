@@ -15,8 +15,9 @@ If you created the alert at the start of Lab 5, it started on NO_DATA. If you cr
 1. In Langfuse, go to Alerts, then New.
 2. Choose Scores (boolean), average of `booking_matches_request`, below `0.9`, over the smallest window offered.
 3. For no-data handling, choose **Show severity NO_DATA**, not the default.
-4. Optional second alert: the count of `booking_matches_request` scores below 10. It doesn't silence the first alert. It flags that the pass rate rests on few scores.
-5. Make some failing traffic and watch the state change:
+4. Save the alert.
+5. Optional second alert: the count of `booking_matches_request` scores below 10. Save it too. It doesn't silence the first alert. It flags that the pass rate rests on few scores.
+6. Make some failing traffic and watch the state change:
    ```
    uv run ws load -n 40 --case 2 --guard off
    ```

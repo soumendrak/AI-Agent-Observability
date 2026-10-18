@@ -6,7 +6,7 @@ You run TripMate, a small travel-booking agent, on your laptop. It sends its tra
 
 **You can pair.** Two people on one laptop is fine and often more fun. One of you does this setup, and you sit together on the day.
 
-## Setup (about 5 minutes)
+## Setup (about 15 minutes)
 
 You need a laptop you can install software on, git, and a network connection. uv installs Python 3.12 for you.
 
@@ -42,17 +42,18 @@ You need a laptop you can install software on, git, and a network connection. uv
    ```
    uv run ws doctor
    ```
-   Each check prints `[OK]`. The last lines are a link to a test trace and a code like `READY-7F3A`. Open the link to see your trace, then submit the code on the form from the setup email.
+   Each check prints `[OK]`. A `[WARN]` line is advice and doesn't stop the checks: you still get READY. The last lines are a link to a test trace and a code like `READY-7F3A`. Open the link to see your trace, then submit the code on the form from the setup email.
 
    If a line says `[FAIL]`, it names the cause and the fix. If you're still stuck, post the exact message in the workshop chat. Never post your secret key.
 
 ## Common errors
 
-`ws doctor` stops at the first problem and prints a one-line cause and fix. The usual ones:
+`ws doctor` stops at the first `[FAIL]` and prints a one-line cause and fix. `[WARN]` lines don't stop it. The `error:` and `guard:` lines come from `ws run` and `ws case`. The usual ones:
 
 | You see | Fix |
 |---|---|
 | `[FAIL] no .env here; copy .env.example to .env in the repo folder` | Run the copy command from step 4 inside the repo folder |
+| `error: missing LANGFUSE_PUBLIC_KEY...` | Same cause from `ws run` or `ws case`: create `.env` as in step 4, or add `--exporter console` |
 | `[FAIL] paste your project's keys into .env (pk-lf-... and sk-lf-...)` | Replace the placeholders with your project's API keys |
 | `[FAIL] the keys are swapped; LANGFUSE_PUBLIC_KEY starts with pk-lf-` | Swap the two key values in `.env` |
 | `[FAIL] these keys belong to the US region: set LANGFUSE_BASE_URL=https://us.cloud.langfuse.com in .env` | Wrong region: set the URL the message names |
@@ -61,7 +62,7 @@ You need a laptop you can install software on, git, and a network connection. uv
 | `[FAIL] .env is not UTF-8 text; open it in an editor and save it as UTF-8` | Save `.env` as UTF-8 (UTF-16 from PowerShell is read automatically) |
 | `[FAIL] cannot reach https://cloud.langfuse.com (ConnectError)` | Check the wifi, proxy or VPN; try a hotspot, or work offline with `--exporter console` |
 | `[WARN] guards.py differs from the workshop version` | Before the workshop: `git stash push --include-untracked -m "before-workshop"` |
-| `[WARN] not on the workshop version v2026.10.31` | `git fetch --tags`, then `git checkout v2026.10.31`, then `uv sync` |
+| `[WARN] not on the workshop version v2026.10.31` | `git stash push --include-untracked -m "before-workshop"`, then `git fetch --tags`, then `git checkout v2026.10.31`, then `uv sync` |
 | `guard: error in guards.py` | Your Lab 4 edit crashed; the message names the Python error. Use `args["origin"]`, not `args.origin` |
 
 Every message, with more detail, is in [docs/troubleshooting.md](docs/troubleshooting.md).
