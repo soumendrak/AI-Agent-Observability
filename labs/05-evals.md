@@ -10,11 +10,11 @@ Score every booking automatically: compare the structured request with the struc
 
 ## Steps
 
-1. In Langfuse, go to Evaluators, then New, then Code evaluator, and choose Python.
-2. Paste the whole of `evals/booking_matches.py`.
-3. Target root observations named `tripmate`. Don't save yet.
-4. Test it on your old Case 2 trace (expect false, with a comment) and on your rerun trace (expect true).
-5. Optional, for Lab 6: create the alert from [Lab 6](06-alerts.md) steps 1 to 3 now, before any score exists, so you can watch it go from NO_DATA to ALERT.
+1. Optional, for Lab 6: create the alert from [Lab 6](06-alerts.md) steps 1 to 3 first, before any score exists, so you can watch it go from NO_DATA to ALERT.
+2. In Langfuse, go to Evaluators, then New, then Code evaluator, and choose Python.
+3. Paste the whole of `evals/booking_matches.py`.
+4. Target root observations named `tripmate`. Don't save yet.
+5. Test it on your old Case 2 trace (expect false, with a comment) and on your rerun trace (expect true).
 6. Save with a rule on new data, then make some traffic:
    ```
    uv run ws load -n 15 --case 0

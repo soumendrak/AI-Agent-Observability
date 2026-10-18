@@ -8,7 +8,7 @@ Build an alert that can tell "not measured" from "failing".
 
 02:20 to 02:40. Soumen demos this with two pre-built alerts on his project: the same pass-rate alert, one on the default no-data mode and one on NO_DATA. Building your own is optional, and Hobby accounts allow 2 alerts.
 
-If you created the alert in Lab 5 before your traffic, it started on NO_DATA. If you create it now, your Lab 5 scores already exist, so it can go straight to ALERT.
+If you created the alert at the start of Lab 5, it started on NO_DATA. If you create it now, your Lab 5 scores already exist, so it can go straight to ALERT.
 
 ## Steps
 

@@ -26,4 +26,4 @@ You can read your own p50, p95 and p99. Everyone's numbers match, because the ru
 
 ## If you're stuck
 
-Answer Q1 to Q3 only and move on. Offline? `uv run ws load -n 50 --exporter console` prints one line per run, with its duration.
+Answer Q1 to Q3 only and move on. Offline? `uv run ws load -n 50 --exporter console` still runs, but the percentiles come from Langfuse, so copy them from the projector.
