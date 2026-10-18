@@ -30,7 +30,7 @@ uv run ws case 2
 ```
 Nothing is red, so the level filter shows nothing: clear it and carry on with the other steps. Fill in worksheet part B (the evidence table) with your partner, then part C (one sentence).
 
-> **Soumen:** the complaint letter, and screenshots of where the root input, tool input and root output are in the UI. Hints are on the slides, one at a time.
+> **Soumen:** the complaint letter, and screenshots of where the root input, tool input and root output are in the UI, taken from a Case 0 trace so they don't show the Case 2 answer. Hints are on the slides, one at a time.
 
 ## Checkpoint
 

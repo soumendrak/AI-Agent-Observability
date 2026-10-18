@@ -34,14 +34,18 @@ Doctor stops at the first `[FAIL]`, and each message names its fix. `[WARN]` lin
 | `[FAIL] Langfuse at https://cloud.langfuse.com answered HTTP 503` | Langfuse is busy or down; your setup is fine. Try again in a minute. Check https://status.langfuse.com. |
 | `[FAIL] the hello trace has not shown up in Langfuse after 30 s` | Ingestion is slow right now. Run `uv run ws doctor` again in a minute. |
 | `[WARN] guards.py differs from the workshop version` | You edited `src/tripmate/guards.py`. That's expected during Lab 4. Before the workshop, set it aside with `git stash push --include-untracked -m "before-workshop"`. |
-| `[WARN] not on the workshop version v2026.10.31` | Switch to the final version: `git fetch --tags`, then `git checkout v2026.10.31`, then `uv sync`. Git's note about "detached HEAD" is expected. |
+| `[WARN] not on the workshop version v2026.10.31` | Switch to the final version with the email 3 commands: `git stash push --include-untracked -m "before-workshop"`, then `git fetch --tags`, then `git checkout v2026.10.31`, then `uv sync`. Git's note about "detached HEAD" is expected. |
+| `[WARN] v2026.10.31 isn't in this clone` | The final version exists but your clone hasn't fetched it. Run the same four commands. |
 | `[WARN] this folder is not a git clone` | You downloaded a zip. Clone instead with `git clone https://github.com/soumendrak/AI-Agent-Observability`, so the final-version steps work. |
 | `[WARN] git was not found` | Install git from https://git-scm.com, so doctor can check `guards.py` and the version. |
+| `[WARN] git won't read this folder because another user owns it` | The folder was created by another user account (common on shared or copied drives). Run the `git config --global --add safe.directory ...` command the message shows. |
+| `[WARN] git did not answer` | git hung or couldn't start. Run `uv run ws doctor` again; if it repeats, check that `git status` works in this folder. |
 
 ## Running a case
 
 | You see | Fix |
 |---|---|
+| `error: missing LANGFUSE_PUBLIC_KEY...` | There's no `.env` in this folder, or it lacks the keys. Copy `.env.example` to `.env` in the repo folder and fill it in (see the README setup), or add `--exporter console` to work offline. |
 | `trace: unavailable (UnauthorizedError), check the keys and LANGFUSE_BASE_URL in .env` | The run worked but the trace link couldn't be built. Run `uv run ws doctor` to find out why. |
 | `error: could not read the trip from` | `ws run` takes a request like `"Book HYD to BLR on 2026-10-31"`: three-letter airport codes, the word `to`, and a date. Put the request in quotes. |
 | `error: --score sdk sends scores to Langfuse; drop --exporter console` | `--score sdk` needs Langfuse, so it doesn't work offline. Use one or the other. |
@@ -56,7 +60,7 @@ Doctor stops at the first `[FAIL]`, and each message names its fix. `[WARN]` lin
 | `error: guards.py line 3:` followed by a Python message | A syntax error on that line. Check the indentation (4 spaces), colons at the end of `if` lines, and matching quotes and brackets. |
 | `error: guards.py could not be loaded: NameError` | The file runs into a problem before the function is even called, often a typo outside the function or an import that doesn't exist. Read the message after the colon. |
 | `error: guards.py must define validate_booking(requested, args)` | The function was renamed or deleted. Keep the name and the two parameters exactly as shipped. |
-| `guard: error in guards.py` followed by, for example, `AttributeError: 'dict' object has no attribute 'origin'` | Your function crashed instead of deciding. `requested` and `args` are dictionaries, so write `args["origin"]`, not `args.origin`. Then rerun. The local check isn't printed until the guard runs cleanly. |
+| `guard: error in guards.py` followed by, for example, `AttributeError: 'dict' object has no attribute 'origin'` | Your function crashed instead of deciding. `requested` and `args` are dictionaries, so write `args["origin"]`, not `args.origin`. Then rerun. Until the guard runs cleanly, the last line says `booking_matches_request: not checked; fix the error in guards.py first`. |
 | `guard: no-op` | The wrong booking went through, so your guard didn't reject it. Check that you saved the file, that you compare all three fields, and that a mismatch raises an error. A failed `assert` also counts as a rejection. |
 
 ## In the Langfuse UI

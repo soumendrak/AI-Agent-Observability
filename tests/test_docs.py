@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DOCS = sorted([ROOT / "README.md", *ROOT.glob("docs/*.md"), *ROOT.glob("labs/*.md")])
 COMMAND = re.compile(r"uv run ws ([^`\n]*)")
 LINK = re.compile(r"\]\(([^)#\s]+)(?:#[^)]*)?\)")
+ANCHOR = re.compile(r"\]\(([^)#\s]*)#([^)\s]+)\)")
 
 
 def commands(doc: Path) -> list[str]:
@@ -30,6 +31,35 @@ def test_relative_links_point_at_files(doc: Path) -> None:
             assert (doc.parent / target).exists(), f"{doc.name} links to missing {target}"
 
 
+def slug(heading: str) -> str:
+    return re.sub(r"[^\w\- ]", "", heading.strip().lower()).replace(" ", "-")
+
+
+def anchors(doc: Path) -> set[str]:
+    text = doc.read_text(encoding="utf-8")
+    return {slug(line.lstrip("#")) for line in text.splitlines() if line.startswith("#")}
+
+
+@pytest.mark.parametrize("doc", DOCS, ids=lambda d: d.relative_to(ROOT).as_posix())
+def test_anchor_links_point_at_headings(doc: Path) -> None:
+    for target, anchor in ANCHOR.findall(doc.read_text(encoding="utf-8")):
+        linked = (doc.parent / target) if target else doc
+        assert anchor in anchors(linked), f"{doc.name} links to missing #{anchor} in {target}"
+
+
+def test_slugs_follow_github() -> None:
+    assert slug(" Lab 4: your `guards.py` edit") == "lab-4-your-guardspy-edit"
+    assert slug("Setup (about 15 minutes)") == "setup-about-15-minutes"
+
+
+def test_setup_time_is_the_same_everywhere() -> None:
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    setup = (ROOT / "labs" / "00-setup.md").read_text(encoding="utf-8")
+    assert "## Setup (about 15 minutes)" in readme
+    assert "about 15 minutes" in setup
+    assert "5 minutes" not in readme.replace("15 minutes", "")
+
+
 def test_readme_covers_the_five_minute_setup() -> None:
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     assert {"doctor", 'run "Book HYD to BLR on 2026-10-31"', "case 0 --exporter console"} <= set(
@@ -40,16 +70,26 @@ def test_readme_covers_the_five_minute_setup() -> None:
 
 
 MESSAGE = re.compile(r"`((?:\[FAIL\]|\[WARN\]|error:|guard:|trace:) [^`]+)`")
-PRINTED_PREFIX = re.compile(r"^(?:\[FAIL\]|error:|guard:|trace:) ")
+PRINTED_AS = {
+    "checkout": (),
+    "cli": ("error: ",),
+    "doctor": ("[FAIL] ",),
+    "models": ("error: ", "[FAIL] "),
+    "request": ("error: ",),
+    "telemetry": ("error: ", "[FAIL] ", "trace: "),
+    "tools": ("error: ", "guard: "),
+}
 SHORTEST_TEXT = 8
 
 
 Parts = list[str | None]
 
 
-def source_strings() -> list[Parts]:
+def source_strings(prefix: str | None = None) -> list[Parts]:
     found: list[Parts] = []
     for path in sorted((ROOT / "src" / "tripmate").glob("*.py")):
+        if prefix is not None and prefix not in PRINTED_AS.get(path.stem, ()):
+            continue
         for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
             if isinstance(node, ast.JoinedStr):
                 found.append(
@@ -102,11 +142,25 @@ def test_common_errors_cover_the_beginner_failures() -> None:
         assert any(needed in m for m in messages), needed
 
 
+def printable(message: str) -> bool:
+    prefix = message.split(" ", 1)[0] + " "
+    bare = message.removeprefix(prefix)
+    return any(could_print(p, message) for p in source_strings()) or any(
+        could_print(p, bare) for p in source_strings(prefix)
+    )
+
+
 def test_quoted_messages_are_what_the_code_prints() -> None:
-    strings = source_strings()
     for message in documented_messages():
-        bare = PRINTED_PREFIX.sub("", message)
-        assert any(could_print(p, message) or could_print(p, bare) for p in strings), message
+        assert printable(message), message
+
+
+def test_the_prefix_must_be_the_printed_one() -> None:
+    assert printable("error: guards.py could not be loaded: NameError")
+    assert not printable("[FAIL] guards.py could not be loaded: NameError")
+    assert printable("[FAIL] no .env here")
+    assert not printable("error: no .env here")
+    assert not printable("guard: no .env here")
 
 
 def test_bare_prefixes_prove_nothing() -> None:

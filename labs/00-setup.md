@@ -10,7 +10,7 @@ At home, after the setup email. It takes about 15 minutes.
 
 ## Steps
 
-1. Follow the setup in the [repo README](../README.md#setup-about-5-minutes).
+1. Follow the setup in the [repo README](../README.md#setup-about-15-minutes).
 2. Run `uv run ws doctor` and wait for `READY-` followed by four characters.
 3. Open the printed hello-trace link and check you can see the trace.
 4. Submit your READY code, and your partner's name if you're pairing, on the form from the setup email.
