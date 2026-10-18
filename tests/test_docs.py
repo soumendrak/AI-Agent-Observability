@@ -1,6 +1,7 @@
 import ast
 import re
 import shlex
+from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
@@ -12,6 +13,8 @@ DOCS = sorted([ROOT / "README.md", *ROOT.glob("docs/*.md"), *ROOT.glob("labs/*.m
 COMMAND = re.compile(r"uv run ws ([^`\n]*)")
 LINK = re.compile(r"\]\(([^)#\s]+)(?:#[^)]*)?\)")
 ANCHOR = re.compile(r"\]\(([^)#\s]*)#([^)\s]+)\)")
+EXTERNAL = ("http://", "https://", "mailto:")
+LINK_TARGET = re.compile(r"\]\([^)]*\)")
 
 
 def commands(doc: Path) -> list[str]:
@@ -27,7 +30,7 @@ def test_every_documented_ws_command_parses(doc: Path) -> None:
 @pytest.mark.parametrize("doc", DOCS, ids=lambda d: d.relative_to(ROOT).as_posix())
 def test_relative_links_point_at_files(doc: Path) -> None:
     for target in LINK.findall(doc.read_text(encoding="utf-8")):
-        if not target.startswith(("http://", "https://", "mailto:")):
+        if not target.startswith(EXTERNAL):
             assert (doc.parent / target).exists(), f"{doc.name} links to missing {target}"
 
 
@@ -40,11 +43,28 @@ def anchors(doc: Path) -> set[str]:
     return {slug(line.lstrip("#")) for line in text.splitlines() if line.startswith("#")}
 
 
+def missing_anchors(doc: Path) -> list[str]:
+    missing: list[str] = []
+    for target, anchor in ANCHOR.findall(doc.read_text(encoding="utf-8")):
+        if target.startswith(EXTERNAL):
+            continue
+        if anchor not in anchors((doc.parent / target) if target else doc):
+            missing.append(f"{target}#{anchor}")
+    return missing
+
+
 @pytest.mark.parametrize("doc", DOCS, ids=lambda d: d.relative_to(ROOT).as_posix())
 def test_anchor_links_point_at_headings(doc: Path) -> None:
-    for target, anchor in ANCHOR.findall(doc.read_text(encoding="utf-8")):
-        linked = (doc.parent / target) if target else doc
-        assert anchor in anchors(linked), f"{doc.name} links to missing #{anchor} in {target}"
+    assert missing_anchors(doc) == []
+
+
+def test_external_fragments_are_not_local_anchors(tmp_path: Path) -> None:
+    doc = tmp_path / "doc.md"
+    doc.write_text(
+        "# Top\n[a](https://langfuse.com/docs#section) [b](#top) [c](#nowhere)\n",
+        encoding="utf-8",
+    )
+    assert missing_anchors(doc) == ["#nowhere"]
 
 
 def test_slugs_follow_github() -> None:
@@ -56,7 +76,9 @@ def test_setup_time_is_the_same_everywhere() -> None:
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     setup = (ROOT / "labs" / "00-setup.md").read_text(encoding="utf-8")
     assert "## Setup (about 15 minutes)" in readme
-    assert "about 15 minutes" in setup
+    visible = LINK_TARGET.sub("]", setup)
+    assert "about 15 minutes" in visible
+    assert "5 minutes" not in visible.replace("15 minutes", "")
     assert "5 minutes" not in readme.replace("15 minutes", "")
 
 
@@ -76,7 +98,9 @@ PRINTED_AS = {
     "doctor": ("[FAIL] ",),
     "models": ("error: ", "[FAIL] "),
     "request": ("error: ",),
-    "telemetry": ("error: ", "[FAIL] ", "trace: "),
+    "telemetry.Telemetry.trace_url": ("trace: ",),
+    "telemetry.load_env": ("error: ", "[FAIL] "),
+    "telemetry.from_env": ("error: ",),
     "tools": ("error: ", "guard: "),
 }
 SHORTEST_TEXT = 8
@@ -85,23 +109,36 @@ SHORTEST_TEXT = 8
 Parts = list[str | None]
 
 
+def strings_in(node: ast.AST) -> Iterator[Parts]:
+    for child in ast.walk(node):
+        if isinstance(child, ast.JoinedStr):
+            yield [
+                v.value if isinstance(v, ast.Constant) and isinstance(v.value, str) else None
+                for v in child.values
+            ]
+        elif isinstance(child, ast.Constant) and isinstance(child.value, str):
+            yield [child.value]
+
+
+def emitters(path: Path) -> Iterator[tuple[str, ast.AST]]:
+    for node in ast.parse(path.read_text(encoding="utf-8")).body:
+        if isinstance(node, ast.ClassDef):
+            for method in node.body:
+                if isinstance(method, ast.FunctionDef):
+                    yield f"{path.stem}.{node.name}.{method.name}", method
+        elif isinstance(node, ast.FunctionDef):
+            yield f"{path.stem}.{node.name}", node
+        else:
+            yield path.stem, node
+
+
 def source_strings(prefix: str | None = None) -> list[Parts]:
     found: list[Parts] = []
     for path in sorted((ROOT / "src" / "tripmate").glob("*.py")):
-        if prefix is not None and prefix not in PRINTED_AS.get(path.stem, ()):
-            continue
-        for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
-            if isinstance(node, ast.JoinedStr):
-                found.append(
-                    [
-                        v.value
-                        if isinstance(v, ast.Constant) and isinstance(v.value, str)
-                        else None
-                        for v in node.values
-                    ]
-                )
-            elif isinstance(node, ast.Constant) and isinstance(node.value, str):
-                found.append([node.value])
+        for name, node in emitters(path):
+            prefixes = PRINTED_AS.get(name, PRINTED_AS.get(name.split(".", 1)[0], ()))
+            if prefix is None or prefix in prefixes:
+                found += strings_in(node)
     return [p for p in found if sum(len(t) for t in p if t) >= SHORTEST_TEXT]
 
 
@@ -161,6 +198,11 @@ def test_the_prefix_must_be_the_printed_one() -> None:
     assert printable("[FAIL] no .env here")
     assert not printable("error: no .env here")
     assert not printable("guard: no .env here")
+    assert printable("error: missing LANGFUSE_PUBLIC_KEY")
+    assert not printable("[FAIL] missing LANGFUSE_PUBLIC_KEY")
+    assert printable("[FAIL] .env is not UTF-8 text")
+    assert printable("trace: unavailable (UnauthorizedError)")
+    assert not printable("trace: missing LANGFUSE_PUBLIC_KEY")
 
 
 def test_bare_prefixes_prove_nothing() -> None:

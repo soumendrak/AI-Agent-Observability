@@ -22,7 +22,7 @@ Read a trace as data: spans, types, arguments and tokens, plus latency percentil
 
 ## Checkpoint
 
-You can read your own p50, p95 and p99. Everyone's numbers match, because the runs are seeded.
+You can read your own p50, p95 and p99. The runs are seeded, so everyone's numbers should be close, but laptops differ a little, so don't expect an exact match.
 
 ## If you're stuck
 
