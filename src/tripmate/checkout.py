@@ -59,7 +59,7 @@ def _review(git: str, guards: Path) -> list[str]:
     )
     if tag.returncode:
         return (
-            [*lines, f"[WARN] {TAG} isn't in this clone; run: {SWITCH}"]
+            [*lines, f"[WARN] {TAG} isn't in this clone yet; once it is published, run: {SWITCH}"]
             if now() >= FREEZE
             else lines
         )
