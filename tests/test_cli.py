@@ -223,6 +223,8 @@ def test_load_runs_a_case_many_times(capsys: pytest.CaptureFixture[str]) -> None
         "run 3/3: FAIL",
     ]
     assert lines[3] == "done: 3 runs of case 2, local check PASS 0/3"
+    assert lines[4].startswith("latency over 3 runs: mean ")
+    assert lines[4].endswith("(nearest rank; with 3 runs p99 is just the slowest run)")
 
 
 def scores_for(fake: FakeLangfuse, out: str) -> list[dict[str, object]]:
