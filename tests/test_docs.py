@@ -40,7 +40,15 @@ def slug(heading: str) -> str:
 
 def anchors(doc: Path) -> set[str]:
     text = doc.read_text(encoding="utf-8")
-    return {slug(line.lstrip("#")) for line in text.splitlines() if line.startswith("#")}
+    seen: dict[str, int] = {}
+    found: set[str] = set()
+    for line in text.splitlines():
+        if line.startswith("#"):
+            base = slug(line.lstrip("#"))
+            count = seen.get(base, 0)
+            seen[base] = count + 1
+            found.add(f"{base}-{count}" if count else base)
+    return found
 
 
 def missing_anchors(doc: Path) -> list[str]:
@@ -65,6 +73,13 @@ def test_external_fragments_are_not_local_anchors(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     assert missing_anchors(doc) == ["#nowhere"]
+
+
+def test_repeated_headings_get_github_suffixes(tmp_path: Path) -> None:
+    doc = tmp_path / "doc.md"
+    doc.write_text("## Steps\n## Steps\n## Steps\n[b](#steps-1) [c](#steps-2)\n", encoding="utf-8")
+    assert anchors(doc) == {"steps", "steps-1", "steps-2"}
+    assert missing_anchors(doc) == []
 
 
 def test_slugs_follow_github() -> None:
@@ -93,15 +108,17 @@ def test_readme_covers_the_five_minute_setup() -> None:
 
 MESSAGE = re.compile(r"`((?:\[FAIL\]|\[WARN\]|error:|guard:|trace:) [^`]+)`")
 PRINTED_AS = {
-    "checkout": (),
-    "cli": ("error: ",),
-    "doctor": ("[FAIL] ",),
-    "models": ("error: ", "[FAIL] "),
-    "request": ("error: ",),
-    "telemetry.Telemetry.trace_url": ("trace: ",),
-    "telemetry.load_env": ("error: ", "[FAIL] "),
-    "telemetry.from_env": ("error: ",),
-    "tools": ("error: ", "guard: "),
+    "cli:raise": ("error: ",),
+    "doctor:yield": ("[OK] ",),
+    "doctor:raise": ("[FAIL] ",),
+    "doctor._explain:return": ("[FAIL] ",),
+    "models:raise": ("error: ", "[FAIL] "),
+    "request:raise": ("error: ",),
+    "telemetry.Telemetry.trace_url:return": ("trace: ",),
+    "telemetry.load_env:raise": ("error: ", "[FAIL] "),
+    "telemetry.from_env:raise": ("error: ",),
+    "tools:raise": ("error: ",),
+    "tools:other": ("guard: ",),
 }
 SHORTEST_TEXT = 8
 
@@ -120,25 +137,40 @@ def strings_in(node: ast.AST) -> Iterator[Parts]:
             yield [child.value]
 
 
+EXITS: dict[type[ast.AST], str] = {ast.Yield: "yield", ast.Raise: "raise", ast.Return: "return"}
+
+
+def emitted(node: ast.AST, kind: str = "other") -> Iterator[tuple[str, Parts]]:
+    if isinstance(node, ast.JoinedStr | ast.Constant):
+        yield from ((kind, parts) for parts in strings_in(node))
+        return
+    for child in ast.iter_child_nodes(node):
+        yield from emitted(child, EXITS.get(type(child), kind))
+
+
 def emitters(path: Path) -> Iterator[tuple[str, ast.AST]]:
     for node in ast.parse(path.read_text(encoding="utf-8")).body:
         if isinstance(node, ast.ClassDef):
             for method in node.body:
-                if isinstance(method, ast.FunctionDef):
-                    yield f"{path.stem}.{node.name}.{method.name}", method
+                yield f"{path.stem}.{node.name}.{getattr(method, 'name', '')}", method
         elif isinstance(node, ast.FunctionDef):
             yield f"{path.stem}.{node.name}", node
         else:
             yield path.stem, node
 
 
+def prefixes_for(name: str, kind: str) -> tuple[str, ...]:
+    module = name.split(".", 1)[0]
+    return PRINTED_AS.get(f"{name}:{kind}", PRINTED_AS.get(f"{module}:{kind}", ()))
+
+
 def source_strings(prefix: str | None = None) -> list[Parts]:
     found: list[Parts] = []
     for path in sorted((ROOT / "src" / "tripmate").glob("*.py")):
         for name, node in emitters(path):
-            prefixes = PRINTED_AS.get(name, PRINTED_AS.get(name.split(".", 1)[0], ()))
-            if prefix is None or prefix in prefixes:
-                found += strings_in(node)
+            for kind, parts in emitted(node):
+                if prefix is None or prefix in prefixes_for(name, kind):
+                    found.append(parts)
     return [p for p in found if sum(len(t) for t in p if t) >= SHORTEST_TEXT]
 
 
@@ -203,6 +235,8 @@ def test_the_prefix_must_be_the_printed_one() -> None:
     assert printable("[FAIL] .env is not UTF-8 text")
     assert printable("trace: unavailable (UnauthorizedError)")
     assert not printable("trace: missing LANGFUSE_PUBLIC_KEY")
+    assert not printable("[FAIL] keys look right")
+    assert printable("[FAIL] LANGFUSE_BASE_URL must stop after the host")
 
 
 def test_bare_prefixes_prove_nothing() -> None:
