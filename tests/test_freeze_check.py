@@ -1,9 +1,10 @@
+import shlex
 from dataclasses import replace
 
 import pytest
-from freeze_check import EDIT, NOTE, Outcome, problems
+from freeze_check import EDIT, EMAIL_3, NOTE, Outcome, problems
 
-from tripmate.checkout import TAG
+from tripmate.checkout import SWITCH, TAG
 
 DOCTOR = "\n".join(
     [
@@ -69,3 +70,8 @@ def test_a_clean_switch_has_no_problems() -> None:
 )
 def test_each_broken_promise_is_reported(outcome: Outcome, edited: bool, expected: str) -> None:
     assert expected in problems(outcome, edited=edited)
+
+
+def test_doctor_hint_matches_the_commands_freeze_check_runs() -> None:
+    hint = [tuple(shlex.split(step)) for step in SWITCH.split(", then ")]
+    assert hint == list(EMAIL_3[:-1])
