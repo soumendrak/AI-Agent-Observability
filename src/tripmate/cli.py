@@ -7,7 +7,7 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import cast
 
-from tripmate import doctor
+from tripmate import checkout, doctor
 from tripmate.agent import RunResult, run_agent
 from tripmate.cases import CASES
 from tripmate.checks import booking_matches_request
@@ -16,7 +16,7 @@ from tripmate.request import EXAMPLE, FIELDS
 from tripmate.telemetry import SetupError, Telemetry, console, from_env, load_env
 from tripmate.tools import Guard, no_guard
 
-GUARDS_FILE = Path(__file__).with_name("guards.py")
+GUARDS_FILE = checkout.GUARDS
 
 
 def load_guard(mode: str) -> Guard:
