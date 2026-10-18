@@ -7,7 +7,7 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import cast
 
-from tripmate import checkout, doctor
+from tripmate import checkout, doctor, models
 from tripmate.agent import RunResult, run_agent
 from tripmate.cases import CASES
 from tripmate.checks import booking_matches_request
@@ -16,6 +16,8 @@ from tripmate.latency import summary
 from tripmate.request import EXAMPLE, FIELDS
 from tripmate.telemetry import SetupError, Telemetry, console, from_env, load_env
 from tripmate.tools import Guard, no_guard
+
+Model = models.RealModel | None
 
 
 def load_guard(mode: str) -> Guard:
@@ -57,8 +59,12 @@ def local_check(result: RunResult) -> str:
     return f"booking_matches_request: {verdict} (local check, same logic as the Langfuse evaluator)"
 
 
-def report(args: argparse.Namespace, telemetry: Telemetry, case: int, text: str) -> None:
-    result = run_agent(text, case, load_guard(args.guard), telemetry, sdk_score=args.score == "sdk")
+def report(
+    args: argparse.Namespace, telemetry: Telemetry, case: int, text: str, model: Model
+) -> None:
+    result = run_agent(
+        text, case, load_guard(args.guard), telemetry, sdk_score=args.score == "sdk", model=model
+    )
     if telemetry.memory is not None:
         print(render(telemetry.spans(result.trace_id)))
     print(f"TripMate: {result.final_message}")
@@ -76,11 +82,15 @@ def positive(text: str) -> int:
     return number
 
 
-def load(args: argparse.Namespace, telemetry: Telemetry, case: int, text: str) -> None:
+def load(
+    args: argparse.Namespace, telemetry: Telemetry, case: int, text: str, model: Model
+) -> None:
     guard, passed, seconds = load_guard(args.guard), 0, []
     for run in range(args.n):
         started = time.perf_counter()
-        result = run_agent(text, case, guard, telemetry, seed=run, sdk_score=args.score == "sdk")
+        result = run_agent(
+            text, case, guard, telemetry, seed=run, sdk_score=args.score == "sdk", model=model
+        )
         seconds.append(time.perf_counter() - started)
         score = booking_matches_request({"requested": result.requested}, result.output)
         passed += score.value
@@ -120,15 +130,30 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         load_env(Path.cwd() / ".env")
         mode = os.environ.get("LLM_MODE", "fake")
-        if mode != "fake":
+        if mode not in ("fake", "openai"):
             raise SetupError(f"LLM_MODE={mode} is not supported; set LLM_MODE=fake in .env")
+        case = getattr(args, "number", 0)
+        model = models.from_env() if mode == "openai" else None
+        if model is not None and case != 0:
+            raise SetupError(
+                "LLM_MODE=openai runs only case 0; the workshop faults need LLM_MODE=fake"
+            )
         if args.score == "sdk" and args.exporter == "console":
             raise SetupError("--score sdk sends scores to Langfuse; drop --exporter console")
         telemetry = console() if args.exporter == "console" else from_env()
         command = load if args.command == "load" else report
-        command(args, telemetry, getattr(args, "number", 0), args.text)
+        command(args, telemetry, case, args.text, model)
         telemetry.langfuse.flush()
     except (SetupError, ValueError) as error:
         print(f"error: {error}", file=sys.stderr)
+        return 2
+    except Exception as error:
+        if not models.is_api_error(error):
+            raise
+        print(
+            f"error: the model call failed ({type(error).__name__}); check OPENAI_API_KEY, "
+            "OPENAI_BASE_URL and OPENAI_MODEL in .env",
+            file=sys.stderr,
+        )
         return 2
     return 0

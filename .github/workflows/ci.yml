@@ -32,5 +32,10 @@ jobs:
         with:
           node-version: "22"
       - run: npm ci
-      - run: uv sync --locked
+      - run: uv sync --locked --extra openai
       - run: uv run python scripts/standards.py
+      - name: plain install, as attendees get it
+        run: uv sync --locked
+      - run: uv run --no-sync python -c "import tripmate.cli, tripmate.doctor"
+      - run: uv run --no-sync ws case 0 --exporter console
+      - run: uv run --no-sync pytest --ignore=tests/test_openai_mode.py -q

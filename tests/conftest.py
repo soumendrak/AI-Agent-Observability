@@ -10,7 +10,7 @@ from tripmate import cli
 from tripmate.agent import RunResult, run_agent
 from tripmate.guards import validate_booking
 from tripmate.request import EXAMPLE
-from tripmate.telemetry import Telemetry, console
+from tripmate.telemetry import KEYS, Telemetry, console
 from tripmate.tools import Guard
 
 
@@ -52,7 +52,7 @@ def fake_langfuse() -> Iterator[FakeLangfuse]:
 @pytest.fixture
 def workshop_shell(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.chdir(tmp_path)
-    for key in ("LANGFUSE_PUBLIC_KEY", "LANGFUSE_SECRET_KEY", "LANGFUSE_BASE_URL", "LLM_MODE"):
+    for key in (*KEYS, "LLM_MODE", "OPENAI_API_KEY", "OPENAI_BASE_URL", "OPENAI_MODEL"):
         monkeypatch.delenv(key, raising=False)
     monkeypatch.setattr("tripmate.llm.sleep", lambda seconds: None)
     monkeypatch.setattr("tripmate.doctor.sleep", lambda seconds: None)
