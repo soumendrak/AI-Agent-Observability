@@ -964,10 +964,15 @@ source = { editable = "." }
 dependencies = [
     { name = "httpx" },
     { name = "langchain-core" },
-    { name = "langchain-openai" },
     { name = "langfuse" },
     { name = "langgraph" },
     { name = "python-dotenv" },
+]
+
+[package.optional-dependencies]
+openai = [
+    { name = "langchain-openai" },
+    { name = "openai" },
 ]
 
 [package.dev-dependencies]
@@ -982,11 +987,13 @@ dev = [
 requires-dist = [
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "langchain-core", specifier = "==1.6.12" },
-    { name = "langchain-openai", specifier = "==1.7.2" },
+    { name = "langchain-openai", marker = "extra == 'openai'", specifier = "==1.7.2" },
     { name = "langfuse", specifier = "==5.0.2" },
     { name = "langgraph", specifier = "==1.2.16" },
+    { name = "openai", marker = "extra == 'openai'", specifier = "==3.35.1" },
     { name = "python-dotenv", specifier = ">=1.0" },
 ]
+provides-extras = ["openai"]
 
 [package.metadata.requires-dev]
 dev = [

@@ -1,4 +1,6 @@
 import json
+import sys
+import tomllib
 from collections.abc import Iterator
 from pathlib import Path
 from typing import cast
@@ -9,7 +11,7 @@ from fake_langfuse import FakeLangfuse
 from opentelemetry.sdk.trace import ReadableSpan
 from stub_openai import REJECTED_KEY, TRIP, StubOpenAI, serve
 
-from tripmate import models
+from tripmate import cli, models
 from tripmate.agent import RunResult, run_agent
 from tripmate.request import EXAMPLE
 from tripmate.telemetry import SetupError, Telemetry
@@ -175,3 +177,50 @@ def test_doctor_fails_without_the_key(
     code, out, _ = ws(capsys, "doctor")
     assert code == 1
     assert out.splitlines()[-1].startswith("[FAIL] LLM_MODE=openai needs OPENAI_API_KEY in .env")
+
+
+def test_the_api_key_stays_out_of_repr() -> None:
+    model = models.RealModel("stub-model", "sk-hidden-123", None)
+    assert "sk-hidden-123" not in repr(model)
+    assert repr(model) == "RealModel(model='stub-model', base_url=None)"
+
+
+def test_openai_mode_without_the_extra_says_how_to_install_it(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setitem(sys.modules, "langchain_openai", None)
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-test")
+    with pytest.raises(SetupError, match=r"run: uv sync --extra openai"):
+        models.from_env()
+
+
+def test_other_errors_still_raise(monkeypatch: pytest.MonkeyPatch) -> None:
+    def broken(*_: object) -> None:
+        raise RuntimeError("not a model error")
+
+    monkeypatch.setattr(cli, "report", broken)
+    with pytest.raises(RuntimeError, match="not a model error"):
+        cli.main(["run", "--exporter", "console"])
+
+
+def installed_by_default() -> set[str]:
+    lock = tomllib.loads(Path(__file__).parents[1].joinpath("uv.lock").read_text("utf-8"))
+    packages = {p["name"]: p for p in lock["package"]}
+    root = packages["tripmate"]
+    todo = list(root["dependencies"]) + [d for g in root["dev-dependencies"].values() for d in g]
+    seen: set[str] = set()
+    while todo:
+        dependency = todo.pop()
+        package = packages[dependency["name"]]
+        for extra in dependency.get("extra", []):
+            todo += package["optional-dependencies"][extra]
+        if dependency["name"] not in seen:
+            seen.add(dependency["name"])
+            todo += package.get("dependencies", [])
+    return seen
+
+
+def test_a_plain_locked_sync_leaves_out_the_openai_extra() -> None:
+    default = installed_by_default()
+    assert "langfuse" in default
+    assert {"langchain-openai", "openai", "tiktoken"}.isdisjoint(default)

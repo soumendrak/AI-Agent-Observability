@@ -32,5 +32,5 @@ jobs:
         with:
           node-version: "22"
       - run: npm ci
-      - run: uv sync --locked
+      - run: uv sync --locked --extra openai
       - run: uv run python scripts/standards.py

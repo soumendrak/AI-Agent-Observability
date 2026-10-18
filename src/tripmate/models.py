@@ -1,12 +1,13 @@
+import importlib.util
 import os
-from dataclasses import dataclass
+import sys
+from dataclasses import dataclass, field
 
 import httpx
 from langchain_core.language_models import LanguageModelInput
 from langchain_core.messages import AIMessage
 from langchain_core.runnables import Runnable
 from langchain_core.tools import BaseTool
-from langchain_openai import ChatOpenAI
 from pydantic import SecretStr
 
 from tripmate.telemetry import SetupError
@@ -24,10 +25,12 @@ SYSTEM = (
 @dataclass(frozen=True)
 class RealModel:
     model: str
-    api_key: str
+    api_key: str = field(repr=False)
     base_url: str | None
 
     def bind(self, tools: list[BaseTool]) -> Runnable[LanguageModelInput, AIMessage]:
+        from langchain_openai import ChatOpenAI
+
         chat = ChatOpenAI(
             model=self.model,
             api_key=SecretStr(self.api_key),
@@ -39,7 +42,14 @@ class RealModel:
         return chat.bind_tools(tools, parallel_tool_calls=False)
 
 
+def is_api_error(error: Exception) -> bool:
+    openai = sys.modules.get("openai")
+    return openai is not None and isinstance(error, openai.APIError)
+
+
 def from_env() -> RealModel:
+    if importlib.util.find_spec("langchain_openai") is None:
+        raise SetupError("LLM_MODE=openai needs the openai extra; run: uv sync --extra openai")
     key = os.environ.get("OPENAI_API_KEY", "")
     if not key or "..." in key:
         raise SetupError(

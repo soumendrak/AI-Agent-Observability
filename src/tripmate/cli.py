@@ -7,8 +7,6 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import cast
 
-import openai
-
 from tripmate import checkout, doctor, models
 from tripmate.agent import RunResult, run_agent
 from tripmate.cases import CASES
@@ -146,7 +144,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     except (SetupError, ValueError) as error:
         print(f"error: {error}", file=sys.stderr)
         return 2
-    except openai.APIError as error:
+    except Exception as error:
+        if not models.is_api_error(error):
+            raise
         print(
             f"error: the model call failed ({type(error).__name__}); check OPENAI_API_KEY, "
             "OPENAI_BASE_URL and OPENAI_MODEL in .env",
