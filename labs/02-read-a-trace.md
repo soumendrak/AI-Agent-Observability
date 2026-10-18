@@ -16,7 +16,7 @@ Read a trace as data: spans, types, arguments and tokens, plus latency percentil
    uv run ws load -n 50
    ```
 3. With a partner if you have one, answer worksheet part A (Q1 to Q5) from your Lab 1 trace.
-4. When the load finishes, open the latency view for the 50 runs and fill in the percentile table on the worksheet.
+4. When the load finishes, its last line reads `latency over 50 runs: mean ..., p50 ..., p95 ..., p99 ...`. Copy those four numbers into the percentile table on the worksheet: the p99 there is this line's p99. Then open the latency view in Langfuse for the same runs. Its numbers can differ a little, because Langfuse times each trace on its own and may use another percentile method ([maths appendix B0](../docs/maths-appendix.md#b0-percentiles-on-small-samples)).
 
 > **Soumen:** where to find the latency view and percentiles in Langfuse, with a screenshot.
 
@@ -26,4 +26,4 @@ You can read your own p50, p95 and p99. The runs are seeded, so everyone's numbe
 
 ## If you're stuck
 
-Answer Q1 to Q3 only and move on. Offline? `uv run ws load -n 50 --exporter console` still runs, but the percentiles come from Langfuse, so copy them from the projector.
+Answer Q1 to Q3 only and move on. Offline? `uv run ws load -n 50 --exporter console` prints the same latency line, so you can still fill in the percentile table.

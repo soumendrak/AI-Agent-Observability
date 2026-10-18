@@ -12,6 +12,7 @@ from tripmate.agent import RunResult, run_agent
 from tripmate.cases import CASES
 from tripmate.checks import booking_matches_request
 from tripmate.console import render
+from tripmate.latency import summary
 from tripmate.request import EXAMPLE, FIELDS
 from tripmate.telemetry import SetupError, Telemetry, console, from_env, load_env
 from tripmate.tools import Guard, no_guard
@@ -84,17 +85,19 @@ def positive(text: str) -> int:
 def load(
     args: argparse.Namespace, telemetry: Telemetry, case: int, text: str, model: Model
 ) -> None:
-    guard, passed = load_guard(args.guard), 0
+    guard, passed, seconds = load_guard(args.guard), 0, []
     for run in range(args.n):
         started = time.perf_counter()
         result = run_agent(
             text, case, guard, telemetry, seed=run, sdk_score=args.score == "sdk", model=model
         )
+        seconds.append(time.perf_counter() - started)
         score = booking_matches_request({"requested": result.requested}, result.output)
         passed += score.value
         verdict = "PASS" if score.value else "FAIL"
-        print(f"run {run + 1}/{args.n}: {verdict} in {time.perf_counter() - started:.2f}s")
+        print(f"run {run + 1}/{args.n}: {verdict} in {seconds[-1]:.2f}s")
     print(f"done: {args.n} runs of case {case}, local check PASS {passed}/{args.n}")
+    print(summary(seconds))
 
 
 def parser() -> argparse.ArgumentParser:
