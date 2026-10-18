@@ -46,6 +46,26 @@ You need a laptop you can install software on, git, and a network connection. uv
 
    If a line says `[FAIL]`, it names the cause and the fix. If you're still stuck, post the exact message in the workshop chat. Never post your secret key.
 
+## Common errors
+
+`ws doctor` stops at the first problem and prints a one-line cause and fix. The usual ones:
+
+| You see | Fix |
+|---|---|
+| `[FAIL] no .env here; copy .env.example to .env in the repo folder` | Run the copy command from step 4 inside the repo folder |
+| `[FAIL] paste your project's keys into .env (pk-lf-... and sk-lf-...)` | Replace the placeholders with your project's API keys |
+| `[FAIL] the keys are swapped; LANGFUSE_PUBLIC_KEY starts with pk-lf-` | Swap the two key values in `.env` |
+| `[FAIL] these keys belong to the US region: set LANGFUSE_BASE_URL=https://us.cloud.langfuse.com in .env` | Wrong region: set the URL the message names |
+| `[FAIL] LANGFUSE_BASE_URL must stop after the host` | Keep only `https://cloud.langfuse.com` or `https://us.cloud.langfuse.com`, without `/project/...` |
+| `[FAIL] Langfuse at https://cloud.langfuse.com rejected the keys (HTTP 401)` | Copy both keys again from the project settings, or create a new pair |
+| `[FAIL] .env is not UTF-8 text; open it in an editor and save it as UTF-8` | Save `.env` as UTF-8 (UTF-16 from PowerShell is read automatically) |
+| `[FAIL] cannot reach https://cloud.langfuse.com (ConnectError)` | Check the wifi, proxy or VPN; try a hotspot, or work offline with `--exporter console` |
+| `[WARN] guards.py differs from the workshop version` | Before the workshop: `git stash push --include-untracked -m "before-workshop"` |
+| `[WARN] not on the workshop version v2026.10.31` | `git fetch --tags`, then `git checkout v2026.10.31`, then `uv sync` |
+| `guard: error in guards.py` | Your Lab 4 edit crashed; the message names the Python error. Use `args["origin"]`, not `args.origin` |
+
+Every message, with more detail, is in [docs/troubleshooting.md](docs/troubleshooting.md).
+
 ## Commands
 
 All commands run from the repo folder, and work the same in PowerShell and in macOS or Linux terminals.

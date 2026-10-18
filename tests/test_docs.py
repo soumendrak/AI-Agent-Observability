@@ -1,3 +1,4 @@
+import ast
 import re
 import shlex
 from pathlib import Path
@@ -36,3 +37,95 @@ def test_readme_covers_the_five_minute_setup() -> None:
     )
     for needed in ("uv sync", "Copy-Item .env.example .env", "cp .env.example .env", "pair"):
         assert needed in readme
+
+
+MESSAGE = re.compile(r"`((?:\[FAIL\]|\[WARN\]|error:|guard:|trace:) [^`]+)`")
+PRINTED_PREFIX = re.compile(r"^(?:\[FAIL\]|error:|guard:|trace:) ")
+SHORTEST_TEXT = 8
+
+
+Parts = list[str | None]
+
+
+def source_strings() -> list[Parts]:
+    found: list[Parts] = []
+    for path in sorted((ROOT / "src" / "tripmate").glob("*.py")):
+        for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+            if isinstance(node, ast.JoinedStr):
+                found.append(
+                    [
+                        v.value
+                        if isinstance(v, ast.Constant) and isinstance(v.value, str)
+                        else None
+                        for v in node.values
+                    ]
+                )
+            elif isinstance(node, ast.Constant) and isinstance(node.value, str):
+                found.append([node.value])
+    return [p for p in found if sum(len(t) for t in p if t) >= SHORTEST_TEXT]
+
+
+def could_print(parts: Parts, message: str) -> bool:
+    if not message:
+        return True
+    if not parts:
+        return False
+    head, rest = parts[0], parts[1:]
+    if head is None:
+        word = len(message) if not rest else len(message.split(" ", 1)[0])
+        return any(could_print(rest, message[end:]) for end in range(1, word + 1))
+    if message.startswith(head):
+        return could_print(rest, message[len(head) :])
+    return head.startswith(message)
+
+
+def documented_messages() -> list[str]:
+    found: list[str] = []
+    for doc in (ROOT / "README.md", ROOT / "docs" / "troubleshooting.md"):
+        found += [m.removesuffix("...") for m in MESSAGE.findall(doc.read_text(encoding="utf-8"))]
+    return found
+
+
+def test_common_errors_cover_the_beginner_failures() -> None:
+    messages = documented_messages()
+    for needed in (
+        "these keys belong to the",
+        "LANGFUSE_BASE_URL must stop after the host",
+        ".env is not UTF-8 text",
+        "guard: error in guards.py",
+        "guards.py could not be loaded",
+        "guards.py differs from the workshop version",
+        "not on the workshop version",
+        "cannot reach",
+        "the keys are swapped",
+    ):
+        assert any(needed in m for m in messages), needed
+
+
+def test_quoted_messages_are_what_the_code_prints() -> None:
+    strings = source_strings()
+    for message in documented_messages():
+        bare = PRINTED_PREFIX.sub("", message)
+        assert any(could_print(p, message) or could_print(p, bare) for p in strings), message
+
+
+def test_bare_prefixes_prove_nothing() -> None:
+    assert not any(could_print(p, "Failed to spawn: ws") for p in source_strings())
+
+
+def test_readme_common_errors_match_troubleshooting() -> None:
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    table = readme.split("## Common errors", 1)[1].split("\n## ", 1)[0]
+    guide = (ROOT / "docs" / "troubleshooting.md").read_text(encoding="utf-8")
+    quoted = MESSAGE.findall(table)
+    assert len(quoted) >= 8
+    assert all(f"`{m}" in guide for m in quoted)
+    assert "docs/troubleshooting.md" in table
+
+
+def test_message_matching_is_strict() -> None:
+    parts: Parts = ["Langfuse at ", None, " rejected the keys (HTTP ", None, ")"]
+    assert could_print(parts, "Langfuse at https://x rejected the keys (HTTP 401)")
+    assert could_print(parts, "Langfuse at https://x rejected")
+    assert not could_print(parts, "Langfuse at https://x accepted the keys")
+    assert not could_print(["no .env here"], "no .env here at all")
