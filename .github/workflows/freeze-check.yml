@@ -1,0 +1,44 @@
+name: freeze-check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      tag_at:
+        description: Commit for a test v2026.10.31 tag, used only while the real tag doesn't exist
+        default: HEAD
+      start:
+        description: Ref the early (v0.1) clones start from; falls back to the tag's parent
+        default: v0.1
+
+permissions:
+  contents: read
+
+concurrency:
+  group: freeze-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  email-3:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884
+        with:
+          python-version: "3.12"
+          enable-cache: false
+      - run: uv sync --locked
+      - run: uv run python scripts/freeze_check.py
+        env:
+          FREEZE_TAG_AT: ${{ inputs.tag_at }}
+          FREEZE_START: ${{ inputs.start }}
