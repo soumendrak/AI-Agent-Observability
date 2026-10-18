@@ -6,10 +6,11 @@ from typing import cast
 import pytest
 from conftest import Run, tree, use_keys, ws
 from fake_langfuse import FakeLangfuse
+from opentelemetry.sdk.trace import ReadableSpan
 from stub_openai import REJECTED_KEY, TRIP, StubOpenAI, serve
 
 from tripmate import models
-from tripmate.agent import run_agent
+from tripmate.agent import RunResult, run_agent
 from tripmate.request import EXAMPLE
 from tripmate.telemetry import SetupError, Telemetry
 from tripmate.tools import no_guard
@@ -32,8 +33,21 @@ def openai_env(base_url: str = "", key: str = "sk-test", model: str = "") -> Non
         env.write("\n".join(lines) + "\n")
 
 
-def shape(nodes: list[tuple[str, str, str]]) -> list[tuple[str, str, str]]:
-    return [(kind, "model" if kind == "generation" else name, level) for kind, name, level in nodes]
+Node = tuple[str, str, str]
+
+
+def shape(telemetry: Telemetry, result: RunResult) -> list[tuple[Node, Node | None]]:
+    spans = telemetry.spans(result.trace_id)
+
+    def node(span: ReadableSpan) -> Node:
+        attributes = span.attributes or {}
+        kind = str(attributes.get("langfuse.observation.type"))
+        level = str(attributes.get("langfuse.observation.level", "DEFAULT"))
+        return (kind, "model" if kind == "generation" else span.name, level)
+
+    by_id = {s.context.span_id: s for s in spans if s.context}
+    edges = [(node(s), node(by_id[s.parent.span_id]) if s.parent else None) for s in spans]
+    return sorted(edges, key=repr)
 
 
 def test_real_model_trace_has_the_same_tree_shape(
@@ -41,7 +55,9 @@ def test_real_model_trace_has_the_same_tree_shape(
 ) -> None:
     model = models.RealModel("stub-model", "sk-test", stub.url)
     real = run_agent(EXAMPLE, 0, no_guard, telemetry, model=model)
-    assert shape(tree(telemetry, real)) == shape(tree(telemetry, run(0)))
+    fake = run(0)
+    assert shape(telemetry, real) == shape(telemetry, fake)
+    assert len(shape(telemetry, real)) == len(tree(telemetry, fake))
     assert real.booking == {"pnr": "DE224B", "flight": "TM-204", **TRIP}
     assert real.final_message == "Booked TM-204 HYD to BLR on 2026-10-31."
     generation = next(
@@ -65,6 +81,7 @@ def test_the_model_gets_the_tools_and_the_instructions(
     tools = cast(list[dict[str, dict[str, str]]], first["tools"])
     messages = cast(list[dict[str, str]], first["messages"])
     assert first["model"] == models.DEFAULT_MODEL
+    assert first["parallel_tool_calls"] is False
     assert [t["function"]["name"] for t in tools] == ["search_flights", "book_flight"]
     assert [m["role"] for m in messages] == ["system", "user"]
     assert set(stub.keys) == {"sk-test"}
@@ -102,6 +119,10 @@ def test_rejected_key_is_reported_without_a_traceback(
 @pytest.mark.parametrize(
     ("env", "message"),
     [
+        (
+            {"OPENAI_API_KEY": "sk-test", "OPENAI_BASE_URL": "https://api.openai.com:notaport/v1"},
+            "OPENAI_BASE_URL must be a full URL like https://api.openai.com/v1, or leave it out",
+        ),
         ({}, "LLM_MODE=openai needs OPENAI_API_KEY in .env"),
         ({"OPENAI_API_KEY": "sk-..."}, "LLM_MODE=openai needs OPENAI_API_KEY in .env"),
         (

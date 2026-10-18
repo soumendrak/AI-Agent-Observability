@@ -13,10 +13,11 @@ from tripmate.telemetry import SetupError
 
 DEFAULT_MODEL = "gpt-5.4-mini"
 SYSTEM = (
-    "You are TripMate, a travel booking agent. Call search_flights with the origin, "
-    "destination and date the user asked for (3-letter airport codes, date as YYYY-MM-DD), "
-    "then book_flight with the same three values, then confirm the booking in one sentence "
-    "that names the flight, the route, the date and the PNR."
+    "You are TripMate, a travel booking agent. Make one tool call at a time. First call "
+    "search_flights with the origin, destination and date the user asked for (3-letter airport "
+    "codes, date as YYYY-MM-DD) and wait for its result. Then call book_flight with the same "
+    "three values. Then confirm the booking in one sentence that names the flight, the route, "
+    "the date and the PNR."
 )
 
 
@@ -35,7 +36,7 @@ class RealModel:
             max_retries=1,
             timeout=60,
         )
-        return chat.bind_tools(tools)
+        return chat.bind_tools(tools, parallel_tool_calls=False)
 
 
 def from_env() -> RealModel:
@@ -47,7 +48,10 @@ def from_env() -> RealModel:
         )
     base_url = os.environ.get("OPENAI_BASE_URL") or None
     if base_url is not None:
-        url = httpx.URL(base_url)
+        try:
+            url = httpx.URL(base_url)
+        except httpx.InvalidURL:
+            url = httpx.URL()
         if url.scheme not in ("http", "https") or not url.host:
             raise SetupError(
                 "OPENAI_BASE_URL must be a full URL like https://api.openai.com/v1, or leave it out"
