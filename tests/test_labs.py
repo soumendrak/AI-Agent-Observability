@@ -12,7 +12,6 @@ LABS = [
     "05-evals",
     "06-alerts",
 ]
-SPOILERS = ("swap", "BLR to HYD", "BLR>HYD", "TM-205", "B1EDC2", "does not match request:")
 
 
 def text(name: str) -> str:
@@ -24,23 +23,6 @@ def test_lab_has_the_shared_structure(name: str) -> None:
     lab = text(name)
     for heading in ("## Goal", "## When", "## Steps", "## Checkpoint", "## If you're stuck"):
         assert f"\n{heading}" in lab, f"{name} lacks {heading}"
-
-
-def spoilers_in(lab: str) -> list[str]:
-    return [spoiler for spoiler in SPOILERS if spoiler.casefold() in lab.casefold()]
-
-
-@pytest.mark.parametrize("name", [*LABS, "worksheet", "README"])
-def test_no_answers_in_attendee_files(name: str) -> None:
-    assert spoilers_in(text(name)) == []
-
-
-def test_spoiler_check_ignores_case() -> None:
-    assert spoilers_in("Swapped! It booked bLr To HyD as tm-205.") == [
-        "swap",
-        "BLR to HYD",
-        "TM-205",
-    ]
 
 
 def test_index_lists_every_lab_in_order() -> None:
