@@ -6,6 +6,7 @@ from conftest import use_keys, ws
 from fake_langfuse import BROKEN_KEY, FakeLangfuse
 
 from tripmate import checkout, cli
+from tripmate.checks import Score, booking_matches_request
 
 REFERENCE = Path(__file__).with_name("reference_guard.py")
 PASS = "booking_matches_request: PASS (local check, same logic as the Langfuse evaluator)"
@@ -223,6 +224,8 @@ def test_load_runs_a_case_many_times(capsys: pytest.CaptureFixture[str]) -> None
         "run 3/3: FAIL",
     ]
     assert lines[3] == "done: 3 runs of case 2, local check PASS 0/3"
+    assert lines[4].startswith("latency over 3 runs: mean ")
+    assert lines[4].endswith("(nearest rank; under 100 runs p99 is just the slowest run)")
 
 
 def scores_for(fake: FakeLangfuse, out: str) -> list[dict[str, object]]:
@@ -291,3 +294,18 @@ def test_env_in_another_encoding_asks_for_utf8(capsys: pytest.CaptureFixture[str
     code, _, err = ws(capsys, "case", "0", "--exporter", "console")
     assert code == 2
     assert err.strip() == "error: .env is not UTF-8 text; open it in an editor and save it as UTF-8"
+
+
+def test_load_times_the_run_not_the_local_check(
+    capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    clock = [0.0]
+
+    def slow_check(requested: dict[str, object], output: dict[str, object]) -> Score:
+        clock[0] += 5.0
+        return booking_matches_request(requested, output)
+
+    monkeypatch.setattr("time.perf_counter", lambda: clock[0])
+    monkeypatch.setattr("tripmate.cli.booking_matches_request", slow_check)
+    _, out, _ = ws(capsys, "load", "-n", "1", "--exporter", "console")
+    assert "run 1/1: PASS in 0.00s" in out.splitlines()
