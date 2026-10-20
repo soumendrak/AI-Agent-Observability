@@ -91,3 +91,7 @@ On Friday 30 October you'll get the exact commands to switch to the final versio
 ## Privacy
 
 The workshop uses only made-up data. Keep your keys in `.env`, which git ignores. Never share your secret key in chat or on screen. If it leaks, rotate it in the Langfuse project settings.
+
+## Sponsor
+
+If this project helps you, consider [sponsoring my work on GitHub](https://github.com/sponsors/soumendrak). Your support helps fund maintenance, documentation, and continued development.
