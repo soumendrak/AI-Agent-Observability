@@ -31,7 +31,7 @@ Keep a notes file open. Each step says what to record.
    `true` means it exists, so update it instead of cloning again:
    ```
    cd gate-check
-   git pull
+   git pull --ff-only
    uv sync
    ```
    A `fatal:` line means there is no clone yet:

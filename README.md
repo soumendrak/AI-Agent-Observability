@@ -59,7 +59,7 @@ You need a laptop you can install software on, a network connection and a Langfu
 
 Every command in this guide goes in a terminal. That is Terminal on macOS, PowerShell on Windows and Terminal on Linux. Type it, or copy and paste it, then press Enter. Run one command at a time. Wait for it to finish before you run the next.
 
-Every setup step checks first and installs only if something is missing. You can run the whole setup again on a laptop that is already set up. Nothing gets installed twice and nothing gets overwritten.
+Every setup step checks first and installs only if something is missing. You can run the whole setup again on a laptop that is already set up. None of your own files get overwritten if you follow the checks.
 
 ### Step 1. Open a terminal
 
@@ -222,22 +222,51 @@ Check whether the folder is already there. Type this in Terminal on macOS or Lin
 git -C AI-Agent-Observability rev-parse --is-inside-work-tree
 ```
 
-Success is the single word `true`. You already have the code, so do not clone it again. Go into the folder and update it.
+Read what it printed. There are three cases. Follow only the one that matches.
+
+**Case 1. It printed `true`.** You already have the code, so do not clone it again. Go into the folder and update it.
 
 ```
 cd AI-Agent-Observability
 ```
 
 ```
-git pull
+git pull --ff-only
 ```
 
-It prints `Already up to date.` or a list of the files that changed. If it complains about local changes, or says you are not on a branch, read [Common errors](#common-errors). Then carry on with the `pwd` check below.
+It prints `Already up to date.` or a list of the files that changed. If it complains about local changes, says you are not on a branch, or says `Not possible to fast-forward`, read [Common errors](#common-errors). You are done with getting the code. Go to [Check you are in the repo folder](#check-you-are-in-the-repo-folder) and skip Cases 2 and 3.
 
-Failure is a `fatal:` line.
+**Case 2. It printed `fatal: cannot change to 'AI-Agent-Observability': No such file or directory`.** You have no copy yet. Clone the code.
 
-- `fatal: cannot change to 'AI-Agent-Observability': No such file or directory` means you have no copy yet. Clone it.
-- `fatal: not a git repository` means a folder with that name exists but is not a clone, such as a zip download. Move it aside, then clone. On macOS or Linux, type this in Terminal.
+```
+git clone https://github.com/soumendrak/AI-Agent-Observability
+```
+
+It prints `Cloning into 'AI-Agent-Observability'...` and then a few progress lines. Go into the new folder.
+
+```
+cd AI-Agent-Observability
+```
+
+Go to [Check you are in the repo folder](#check-you-are-in-the-repo-folder) and skip Case 3.
+
+**Case 3. It printed `fatal: not a git repository`.** A folder with that name exists but is not a clone, such as a zip download. Move it aside, then clone. First check that the new name is free.
+
+macOS or Linux. Type this in Terminal.
+
+```
+ls AI-Agent-Observability-old
+```
+
+Windows. Type this in PowerShell.
+
+```
+Test-Path AI-Agent-Observability-old
+```
+
+Success, meaning the name is free, is `No such file or directory` on macOS or Linux and `False` on Windows. If you saw `True`, or a list of files, use `AI-Agent-Observability-old2` instead of `AI-Agent-Observability-old` in the next command, and check that name the same way.
+
+On macOS or Linux, type this in Terminal.
 
 ```
 mv AI-Agent-Observability AI-Agent-Observability-old
@@ -249,17 +278,17 @@ On Windows, type this in PowerShell.
 Rename-Item AI-Agent-Observability AI-Agent-Observability-old
 ```
 
-If you saw `true`, skip the clone. If you saw `fatal:`, clone the code:
+Now clone the code, then go into the new folder.
 
 ```
 git clone https://github.com/soumendrak/AI-Agent-Observability
 ```
 
-It prints `Cloning into 'AI-Agent-Observability'...` and then a few progress lines. Go into the new folder.
-
 ```
 cd AI-Agent-Observability
 ```
+
+#### Check you are in the repo folder
 
 From now on, every command runs in this folder. Check you are in it.
 
@@ -294,6 +323,8 @@ Test-Path .env
 ```
 
 Success is `.env` on macOS or Linux, and `True` on Windows. Your file exists, so do not copy over it. A copy would erase the keys inside. Skip to opening the file below.
+
+The name `.env` starts with a dot, so Finder and File Explorer hide it, and a plain `ls` skips it. Naming the file, as in `ls .env`, still finds it. To list every hidden file, type `ls -a` in Terminal on macOS or Linux, or `ls -Force` in PowerShell. In File Explorer, turn on hidden items in the **View** menu.
 
 Failure is `No such file or directory` on macOS or Linux, and `False` on Windows. Copy the example file. The copy is your private `.env` file.
 
@@ -748,12 +779,14 @@ Other things that go wrong before any message appears:
 |---|---|
 | `git: command not found` or `'git' is not recognized` | Run `git --version`. If it fails, install Git (step 2), then open a new terminal |
 | `uv: command not found` or `'uv' is not recognized` | Open a new terminal and run `uv --version`. If it still fails, install uv (step 3), then open a new terminal |
-| `fatal: destination path 'AI-Agent-Observability' already exists and is not an empty directory` | You already have the folder. Do not clone again. Run `cd ~/AI-Agent-Observability`, then `git pull` (step 5) |
-| `git pull` says your local changes would be overwritten | Set your edits aside with `git stash push --include-untracked -m "before-workshop"`, then run `git pull` again |
-| `git pull` says `You are not currently on a branch` | You are on the fixed workshop version. Run `git checkout main`, then `git pull` |
+| `fatal: destination path 'AI-Agent-Observability' already exists and is not an empty directory` | You already have the folder. Do not clone again. Run `cd ~/AI-Agent-Observability`, then `git pull --ff-only` (step 5) |
+| `git pull --ff-only` says your local changes would be overwritten | Set your edits aside with `git stash push --include-untracked -m "before-workshop"`, then run `git pull --ff-only` again |
+| `git pull --ff-only` says `You are not currently on a branch` | You are on the fixed workshop version. Run `git checkout main`, then `git pull --ff-only`. If `git checkout main` complains about local changes, run `git stash push --include-untracked -m "before-workshop"` first, then `git checkout main`, then `git pull --ff-only` |
+| `git pull --ff-only` says `Not possible to fast-forward` | Your copy has a change that the workshop copy does not. Nothing was changed and your files are safe. Ask a TA, or post the exact message in the workshop chat. Ignore the hints about merge and rebase. Do not try other git commands to force it. Details are in [docs/troubleshooting.md](docs/troubleshooting.md) |
+| `Rename-Item` says `Cannot create a file when that file already exists` | A folder called `AI-Agent-Observability-old` is already there. Repeat the move in step 5 with `AI-Agent-Observability-old2` |
 | `No such file or directory` or `Cannot find path` after a `cd` | Run `pwd`. Then run `cd ~/AI-Agent-Observability` |
 | `No pyproject.toml found` or `Failed to spawn: ws` | You are in the wrong folder. Run `cd ~/AI-Agent-Observability` |
-| You cannot find `.env` in your file browser | The name starts with a dot, so it is hidden. Use the `ls` command in step 6 or open it from the terminal |
+| You cannot find `.env` in your file browser | The name starts with a dot, so it is hidden. Run the `.env` check in step 6, or open it from the terminal |
 
 Every message, with more detail, is in [docs/troubleshooting.md](docs/troubleshooting.md).
 
