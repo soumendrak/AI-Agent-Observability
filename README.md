@@ -91,7 +91,7 @@ Check where you are.
 pwd
 ```
 
-It prints a folder path that holds your user name, such as `/Users/asha` on macOS, `/home/asha` on Linux or `C:\Users\asha` on Windows. Do not use a folder that OneDrive, iCloud or Dropbox syncs.
+It prints a folder path that holds your user name, such as `/Users/asha` on macOS or `/home/asha` on Linux. Windows PowerShell prints a small table with a `Path` heading. Read the path under it, such as `C:\Users\asha`. Do not use a folder that OneDrive, iCloud or Dropbox syncs.
 
 ### Step 2. Install Git
 
@@ -172,9 +172,9 @@ Do this in your web browser.
 3. Create a project called `tripmate-workshop`.
 4. Open the project **Settings** and find **API Keys**.
 5. Create a new key pair. If the form asks what the key may do, choose full access, because `ws doctor` reads data back.
-6. Copy both keys into a scratch note. The public key starts with `pk-lf-`. The secret key starts with `sk-lf-`.
+6. Keep this browser tab open. You paste both keys straight into `.env` in step 6. The public key starts with `pk-lf-`. The secret key starts with `sk-lf-`.
 
-Langfuse shows the secret key only once. If you lose it, create a new key pair and delete the old one. Read [Never share your secret key](#never-share-your-secret-key) before you go on.
+Langfuse shows the secret key only once, so do not close the tab before step 6. If you lose it, create a new key pair and delete the old one. Read [Never share your secret key](#never-share-your-secret-key) before you go on.
 
 ### Step 5. Download the code
 
@@ -196,7 +196,7 @@ From now on, every command runs in this folder. Check you are in it.
 pwd
 ```
 
-The path must end with `AI-Agent-Observability`. If it does not, run `cd ~/AI-Agent-Observability`.
+The path must end with `AI-Agent-Observability`. In Windows PowerShell, `pwd` prints a small table with a `Path` heading, so read the path under that heading. If it does not end with `AI-Agent-Observability`, run `cd ~/AI-Agent-Observability`.
 
 Install everything the repo needs.
 
@@ -258,22 +258,25 @@ Linux.
 nano .env
 ```
 
-If you installed VS Code, `code .env` works on all three systems.
+If you installed VS Code and its `code` command works, `code .env` opens the file on all three systems. If you see `command not found` or `not recognized`, use the TextEdit, Notepad or nano command above instead.
 
-You see four lines. Change the first three so they look like this, with your own keys.
+You see four lines. They are the same as `.env.example`.
 
 ```
-LANGFUSE_PUBLIC_KEY=pk-lf-your-public-key-here
-LANGFUSE_SECRET_KEY=sk-lf-your-secret-key-here
+LANGFUSE_PUBLIC_KEY=pk-lf-...
+LANGFUSE_SECRET_KEY=sk-lf-...
 LANGFUSE_BASE_URL=https://cloud.langfuse.com
+LLM_MODE=fake
 ```
 
-Follow these rules.
+Switch to the Langfuse tab from step 4. Replace the whole value on the first two lines with the key you copy from Langfuse. That includes the `pk-lf-...` and `sk-lf-...` text that is there now. After the edit, the first line holds your public key and nothing else after the `=`. The second line holds your secret key and nothing else after the `=`. If any placeholder or other leftover text stays in, doctor fails in step 8. It prints either the paste-your-keys message or an HTTP 401 error.
+
+Then check the other lines.
 
 - No spaces around the `=`.
 - No quotes around the values.
 - Use `https://cloud.langfuse.com` for the EU region. Use `https://us.cloud.langfuse.com` for the US region.
-- Leave the line `LLM_MODE=fake` as it is.
+- Set `LANGFUSE_BASE_URL` to match your region, and leave `LLM_MODE=fake` as it is.
 
 Save the file. In TextEdit use Cmd and S. If TextEdit shows rich text, choose **Format** then **Make Plain Text** first. In Notepad use Ctrl and S. In nano press Ctrl and O, then Enter, then Ctrl and X.
 
@@ -324,9 +327,9 @@ uv run ws doctor
 
 Doctor checks your setup one line at a time. It stops at the first `[FAIL]` line. A `[WARN]` line is advice and does not stop it.
 
-If your keys are right, every check prints `[OK]`. The checks cover your Python version, the `.env` file, the shape of your keys, `LLM_MODE=fake` and a real call to your Langfuse project. The last two lines are the link to a test trace and a code such as `READY-7F3A`. Your code differs. It comes from your project.
+If your keys are right, every check prints `[OK]` at the start of its line. The checks cover your Python version, the `.env` file, the shape of your keys, `LLM_MODE=fake` and a real call to your Langfuse project. The last two lines are the test trace link and a code such as `READY-7F3A`. The link line reads `[OK] hello trace:` and then the link. Your code differs. It comes from your project.
 
-1. Click or copy the line that starts with `hello trace:` and open the link in your browser. You see the test trace that doctor just sent. If you cannot click the link, copy it into the address bar.
+1. Open the link from the `[OK] hello trace:` line in your browser. You see the test trace that doctor just sent. If you cannot click the link, copy it into the address bar.
 2. Copy your `READY-` code.
 3. Paste it into the form from the setup email.
 
@@ -415,7 +418,7 @@ This lab needs a lot of runs. You start them in a second terminal and keep readi
 cd ~/AI-Agent-Observability
 ```
 
-4. Send 50 runs. They take a few minutes.
+4. Send 50 runs. They take about a minute.
 
 ```
 uv run ws load -n 50
@@ -441,7 +444,7 @@ You are done when you can read your own p50, p95 and p99. That is checkpoint 2. 
 If you do not see this:
 
 - The runs stop on an `error:` line. Find it in [Common errors](#common-errors).
-- The command seems stuck. Fifty runs take a few minutes. Wait for the `done:` line.
+- The command seems stuck. Fifty runs take about a minute. Wait for the `done:` line.
 - You are short on time. Answer questions 1 to 3 and move on.
 - You are offline. Run `uv run ws load -n 50 --exporter console`. It prints the same latency line.
 
@@ -473,7 +476,7 @@ uv run ws case 2
 
 Open the trace link it prints. Nothing is red, so the level filter shows nothing. Clear it and carry on with the other steps. Fill in Part B (the evidence table) of the [worksheet](labs/worksheet.md) with your partner. Then write Part C, one sentence.
 
-The root cause is not in this README on purpose. This repo is public, so the hints and the answer are on the slides and the TA sheet. The full lab text is in [labs/03-incident.md](labs/03-incident.md).
+The root cause is not in this README on purpose. This repo is public, so hints are shown live and answers are with the TAs. The full lab text is in [labs/03-incident.md](labs/03-incident.md).
 
 You are done when your sentence says what went wrong, where it shows in the trace and why the confirmation hid it. A TA checks it. That is checkpoint 3.
 
@@ -570,7 +573,7 @@ More help is in [docs/troubleshooting.md](docs/troubleshooting.md#lab-4-your-gua
 
 An evaluator is a program that scores traces. Yours compares the structured request with the structured booking, not the confirmation text.
 
-1. Optional, for Lab 6. Create the alert from [Lab 6](#lab-6-alerts-optional) steps 1 to 4 now, before any score exists. Then you can watch it go from `NO_DATA` to `ALERT`.
+1. Optional, for Lab 6. Create the alert from [Lab 6](#lab-6-alerts-optional) steps 1 to 5 now, before any score exists. Then you can watch it go from `NO_DATA` to `ALERT`.
 2. Copy the evaluator code to your clipboard. It is the whole of `evals/booking_matches.py`.
 
 macOS.
@@ -585,10 +588,10 @@ Windows (PowerShell).
 Get-Content -Raw evals\booking_matches.py | Set-Clipboard
 ```
 
-Linux. Open the file, select all and copy. In nano, press Ctrl and X to leave without changes.
+Linux. Print the file in the terminal. Then select all the text with the mouse, from the first line to the last, and copy it with Ctrl, Shift and C. The file is short, so you may need to scroll up to start at the first line. You can also open the file in any editor you like, select all and copy.
 
 ```
-nano evals/booking_matches.py
+cat evals/booking_matches.py
 ```
 
 3. In Langfuse, open **Evaluators** in the left menu.
