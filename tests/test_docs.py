@@ -97,12 +97,94 @@ def test_setup_anchor_is_stable() -> None:
 CLOCK_OR_MINUTES = re.compile(r"\b\d{2}:\d{2}\b|\bminutes?\b", re.IGNORECASE)
 
 
-TIMELESS = [ROOT / "README.md", *sorted(ROOT.glob("labs/*.md"))]
+TIMELESS = [
+    ROOT / "README.md",
+    ROOT / "docs" / "troubleshooting.md",
+    *sorted(ROOT.glob("labs/*.md")),
+]
 
 
 @pytest.mark.parametrize("doc", TIMELESS, ids=lambda p: p.name)
 def test_readme_and_labs_state_no_times(doc: Path) -> None:
     assert not CLOCK_OR_MINUTES.search(doc.read_text(encoding="utf-8"))
+
+
+CHECK_BEFORE_INSTALL = {
+    "uv --version": (
+        "curl -LsSf https://astral.sh/uv/install.sh | sh",
+        "irm https://astral.sh/uv/install.ps1 | iex",
+        "winget install --id=astral-sh.uv",
+    ),
+    "git --version": (
+        "xcode-select --install",
+        "winget install --id Git.Git",
+        "sudo apt-get install git",
+        "sudo dnf install git",
+    ),
+}
+CHECK_FIRST_DOCS = [ROOT / "README.md", ROOT / "docs" / "troubleshooting.md"]
+
+
+def first_at(text: str, needle: str) -> int:
+    found = text.find(needle)
+    return len(text) if found < 0 else found
+
+
+@pytest.mark.parametrize(
+    "doc", [*CHECK_FIRST_DOCS, ROOT / "docs" / "integration-gate.md"], ids=lambda p: p.name
+)
+def test_every_install_command_comes_after_its_check(doc: Path) -> None:
+    text = doc.read_text(encoding="utf-8")
+    for check, installs in CHECK_BEFORE_INSTALL.items():
+        for install in installs:
+            if install in text:
+                assert check in text, f"{doc.name} installs without {check}"
+                assert text.index(check) < text.index(install), (
+                    f"{doc.name}: {install} before {check}"
+                )
+
+
+def test_readme_covers_every_install_command_for_every_os() -> None:
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    for install in (
+        "curl -LsSf https://astral.sh/uv/install.sh | sh",
+        'powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"',
+        "xcode-select --install",
+        "winget install --id Git.Git -e --source winget",
+        "sudo apt-get install git",
+        "sudo dnf install git",
+    ):
+        assert install in readme, install
+
+
+def test_each_readme_install_is_gated_by_a_skip_line() -> None:
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    for step in ("### Step 2.", "### Step 3."):
+        body = readme.split(step, 1)[1].split("\n### ", 1)[0]
+        check = "git --version" if step.endswith("2.") else "uv --version"
+        assert "If you saw a version number, skip to the next step." in body
+        assert "If not, install it" in body
+        assert first_at(body, check) < first_at(body, "skip to the next step")
+        skip = first_at(body, "skip to the next step")
+        assert all(skip < first_at(body, install) for install in CHECK_BEFORE_INSTALL[check])
+        for failure in ("command not found", "is not recognized"):
+            assert failure in body
+
+
+def test_clone_and_env_are_checked_before_they_change_anything() -> None:
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    clone_check = "git -C AI-Agent-Observability rev-parse --is-inside-work-tree"
+    assert first_at(readme, clone_check) < first_at(readme, "git clone https://github.com")
+    assert "git pull" in readme
+    for check, copy in (
+        ("ls .env", "cp .env.example .env"),
+        ("Test-Path .env", "Copy-Item .env.example .env"),
+    ):
+        assert first_at(readme, check) < first_at(readme, copy), copy
+    gate = (ROOT / "docs" / "integration-gate.md").read_text(encoding="utf-8")
+    assert first_at(gate, "Test-Path .env") < first_at(gate, "Copy-Item .env.example .env")
+    assert first_at(gate, "ls .env") < first_at(gate, "cp .env.example .env")
+    assert first_at(gate, "git -C gate-check rev-parse") < first_at(gate, "git clone")
 
 
 def test_readme_covers_the_five_minute_setup() -> None:
