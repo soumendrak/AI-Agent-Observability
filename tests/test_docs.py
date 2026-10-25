@@ -87,14 +87,22 @@ def test_slugs_follow_github() -> None:
     assert slug("Setup (about 15 minutes)") == "setup-about-15-minutes"
 
 
-def test_setup_time_is_the_same_everywhere() -> None:
+def test_setup_anchor_is_stable() -> None:
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     setup = (ROOT / "labs" / "00-setup.md").read_text(encoding="utf-8")
-    assert "## Setup (about 15 minutes)" in readme
-    visible = LINK_TARGET.sub("]", setup)
-    assert "about 15 minutes" in visible
-    assert "5 minutes" not in visible.replace("15 minutes", "")
-    assert "5 minutes" not in readme.replace("15 minutes", "")
+    assert "\n## Setup\n" in readme
+    assert "../README.md#setup)" in setup
+
+
+CLOCK_OR_MINUTES = re.compile(r"\b\d{2}:\d{2}\b|\bminutes?\b", re.IGNORECASE)
+
+
+TIMELESS = [ROOT / "README.md", *sorted(ROOT.glob("labs/*.md"))]
+
+
+@pytest.mark.parametrize("doc", TIMELESS, ids=lambda p: p.name)
+def test_readme_and_labs_state_no_times(doc: Path) -> None:
+    assert not CLOCK_OR_MINUTES.search(doc.read_text(encoding="utf-8"))
 
 
 def test_readme_covers_the_five_minute_setup() -> None:

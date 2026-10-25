@@ -20,7 +20,7 @@ The agent uses a scripted fake model, so you need no LLM key and every laptop se
 
 ## Before the day, checklist
 
-Finish this list at home. It takes about 15 minutes.
+Finish this list at home, before the day.
 
 - [ ] A laptop you can install software on. Not a locked work laptop.
 - [ ] A working internet connection.
@@ -53,7 +53,7 @@ If a step fails, go to [Common errors](#common-errors). Do not skip a failed ste
 | Evaluator | A small program that reads a trace and gives it a score. |
 | Guard | A check in `guards.py` that stops a bad tool call. You write one in Lab 4. |
 
-## Setup (about 15 minutes)
+## Setup
 
 You need a laptop you can install software on, a network connection and a Langfuse account. uv installs Python 3.12 for you. You do not install Python yourself.
 
@@ -204,7 +204,7 @@ Install everything the repo needs.
 uv sync
 ```
 
-It can take a minute or two on slow wifi. It prints `Using CPython 3.12`, then `Creating virtual environment at: .venv`, then a long list of lines that start with `+`. It ends with no error.
+It can take a while on slow wifi. It prints `Using CPython 3.12`, then `Creating virtual environment at: .venv`, then a long list of lines that start with `+`. It ends with no error.
 
 ### Step 6. Add your keys to `.env`
 
@@ -362,17 +362,16 @@ cd ~/AI-Agent-Observability
 
 Keep two things open. One is the terminal. The other is your Langfuse project in the browser. In Langfuse, click **Tracing** in the left menu to see your traces.
 
-The guide below follows the workshop slides. Times are the slide times, counted from the start of the session. The labs run in windows that end on a checkpoint, not on the clock. Put a green sticky on your laptop when you are ready and a red one when you need help. TAs go to the red ones.
+The guide below follows the workshop slides. The labs end on a checkpoint, not on the clock. Put a green sticky on your laptop when you are ready and a red one when you need help. TAs go to the red ones.
 
-| Part | Time | Lab |
-|---|---|---|
-| 1. Opening and first trace | 00:00 to 00:16 | [Lab 1](labs/01-first-trace.md) |
-| 2. Read a trace | 00:16 to 00:41 | [Lab 2](labs/02-read-a-trace.md) |
-| 3. The incident | 00:41 to 01:21 | [Lab 3](labs/03-incident.md) and [Lab 4](labs/04-fix-and-rerun.md) |
-| Break | 10 minutes | none |
-| 4. Build an evaluator | 01:36 to 02:11 | [Lab 5](labs/05-evals.md) |
-| 5. Monitor and alert | 02:16 to 02:39 | [Lab 6](labs/06-alerts.md), optional |
-| 6. Take it to production | 02:39 to 03:00 | no lab, see [docs/production-checklist.md](docs/production-checklist.md) |
+| Part | Lab |
+|---|---|
+| 1. Opening and first trace | [Lab 1](labs/01-first-trace.md) |
+| 2. Read a trace | [Lab 2](labs/02-read-a-trace.md) |
+| 3. The incident | [Lab 3](labs/03-incident.md) and [Lab 4](labs/04-fix-and-rerun.md) |
+| 4. Build an evaluator | [Lab 5](labs/05-evals.md) |
+| 5. Monitor and alert | [Lab 6](labs/06-alerts.md), optional |
+| 6. Take it to production | no lab, see [docs/production-checklist.md](docs/production-checklist.md) |
 
 Lab 0 is the setup you just did. Each lab file in [labs/](labs/) has the same steps with more detail, and [docs/](docs/) holds the extras. Every command you need is below.
 
@@ -404,7 +403,7 @@ If you do not see this:
 
 - No `trace:` link in the terminal. You probably ran with `--exporter console`. Run the command again without it.
 - A `[FAIL]` or `error:` line instead. Find it in [Common errors](#common-errors).
-- The trace is not in the list. Wait ten seconds, then reload the browser tab. Check that you are in the project `tripmate-workshop` and in the same region as your `LANGFUSE_BASE_URL`.
+- The trace is not in the list. Reload the browser tab. A new trace can take a while to show up. Check that you are in the project `tripmate-workshop` and in the same region as your `LANGFUSE_BASE_URL`.
 
 ### Lab 2. Read a trace
 
@@ -418,7 +417,7 @@ This lab needs a lot of runs. You start them in a second terminal and keep readi
 cd ~/AI-Agent-Observability
 ```
 
-4. Send 50 runs. They take about a minute.
+4. Send 50 runs.
 
 ```
 uv run ws load -n 50
@@ -426,7 +425,7 @@ uv run ws load -n 50
 
 5. While it runs, open the [worksheet](labs/worksheet.md). With a partner if you have one, answer Part A (questions 1 to 5) from your Lab 1 trace.
 6. The load prints one line per run, such as `run 1/50: PASS in 0.70s`. When it ends, its last line starts with `latency over 50 runs:` and shows the mean, p50, p95 and p99 times. Copy those four numbers into the percentile table on the worksheet.
-7. Open the latency view in Langfuse for the same runs. Soumen shows where it is on the projector. Its numbers can differ a little from yours, because Langfuse times each trace on its own and may use another percentile method. See [docs/maths-appendix.md](docs/maths-appendix.md#b0-percentiles-on-small-samples).
+7. Open **Dashboards** in your Langfuse project and look at the Latency dashboard for the same runs. The project Home page also shows latency percentiles. Its numbers can differ a little from yours, because Langfuse times each trace on its own and may use another percentile method. See [docs/maths-appendix.md](docs/maths-appendix.md#b0-percentiles-on-small-samples).
 
 A percentile such as p95 is the time that 95 out of 100 runs beat. With fewer than 100 runs, p99 is just the slowest run.
 
@@ -444,7 +443,7 @@ You are done when you can read your own p50, p95 and p99. That is checkpoint 2. 
 If you do not see this:
 
 - The runs stop on an `error:` line. Find it in [Common errors](#common-errors).
-- The command seems stuck. Fifty runs take about a minute. Wait for the `done:` line.
+- The command seems stuck. Fifty runs take a while. Wait for the `done:` line.
 - You are short on time. Answer questions 1 to 3 and move on.
 - You are offline. Run `uv run ws load -n 50 --exporter console`. It prints the same latency line.
 
@@ -529,12 +528,7 @@ def validate_booking(requested: dict[str, str], args: dict[str, str]) -> None:
 4. Make the function raise a `ValueError` if the origin, destination or date in `args` differs from `requested`.
 5. Save the file.
 
-Here is the Python syntax you need, with unrelated names. Read a value with square brackets and quotes. Raise an error with `raise`.
-
-```python
-if left["color"] != right["color"]:
-    raise ValueError("the colors differ")
-```
+If Python syntax is new to you, ask a TA. They can help with the syntax without giving away the fix.
 
 6. Rerun Case 2. This reloads your edit.
 
@@ -565,7 +559,7 @@ If you do not see this:
 - The `guard:` line says `error in guards.py` and names a Python error. Read the error. A `NameError` or `AttributeError` often means you wrote `args.origin`. Write `args["origin"]` instead. An `IndentationError` means the spaces at the start of a line are wrong.
 - The check line says `FAIL`. Your code runs but does not stop the wrong booking. Check all three fields.
 - You broke the file. Restore the original with `git restore src/tripmate/guards.py`, then edit again.
-- Stuck for more than five minutes. Ask a TA.
+- Still stuck after a few tries. Ask a TA.
 
 More help is in [docs/troubleshooting.md](docs/troubleshooting.md#lab-4-your-guardspy-edit).
 
@@ -615,9 +609,9 @@ uv run ws load -n 15 --case 2 --guard off
 uv run ws case 2 --rerun
 ```
 
-11. Wait a minute. In the trace list, filter on the score `booking_matches_request` equal to `false`. Only the wrong bookings stay.
+11. Wait for the scores to arrive. In the trace list, filter on the score `booking_matches_request` equal to `false`. Only the wrong bookings stay.
 
-The code evaluator runs in a sandbox. It can use only the Python standard library. It has no network access and a two second limit. Its traces must come from an OpenTelemetry SDK, which TripMate uses. If you are short on time, use `-n 5` instead of `-n 15`.
+The code evaluator runs in a sandbox. It can use only the Python standard library. It has no network access and a short time limit. Its traces must come from an OpenTelemetry SDK, which TripMate uses. If you are short on time, use `-n 5` instead of `-n 15`.
 
 You are done when the evaluator says `false` on the old Case 2 trace and `true` on the rerun trace (checkpoint 5), and scores appear on the new traffic (checkpoint 6).
 
@@ -625,7 +619,7 @@ If you do not see this:
 
 - The test error says `missing field`. You picked the wrong observation or an old trace. Use the `tripmate` span from a fresh run.
 - You cannot find **Code evaluator**, or your TA picks the fallback. Read `src/tripmate/checks.py` and add `--score sdk` to the commands in step 10. Your terminal then scores each run and the scores arrive in Langfuse.
-- No scores show after two minutes. Reload the page and check that the evaluator and its rule are saved.
+- Scores still do not show after you reload. Reload the page and check that the evaluator and its rule are saved.
 
 ### Lab 6. Alerts (optional)
 
@@ -645,7 +639,7 @@ If you made the alert at the start of Lab 5, it started on `NO_DATA`. If you mak
 uv run ws load -n 40 --case 2 --guard off
 ```
 
-Alert checks can take a few minutes. Reload the **Alerts** page to see the state. The workshop does not need a notification channel. If the form insists on one, ask a TA.
+Alert checks are not instant. Reload the **Alerts** page to see the state. The workshop does not need a notification channel. If the form insists on one, ask a TA.
 
 You are done when you can explain the difference between `NO_DATA` and `ALERT`.
 

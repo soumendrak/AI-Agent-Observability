@@ -6,8 +6,8 @@ A customer says TripMate booked the wrong flight. Find the evidence in the trace
 
 ## When
 
-- Warm-up (Case 1): 00:47 to 00:55.
-- Investigation (Case 2): 00:55 to 01:15. Five minutes alone, then compare with your partner, then write one sentence. Checkpoint 3 is at 01:10.
+- Warm-up (Case 1) first.
+- Then the investigation (Case 2). Work alone first, then compare with your partner, then write one sentence. Checkpoint 3 is that sentence.
 
 ## Steps
 

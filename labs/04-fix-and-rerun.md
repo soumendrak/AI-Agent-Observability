@@ -6,7 +6,7 @@ Stop the wrong booking before it happens, then prove the fix with a rerun.
 
 ## When
 
-01:15 to 01:25, plus buffer A to 01:30. Checkpoint 4 is at 01:25.
+Part 3, straight after Lab 3. Checkpoint 4 is a rerun that prints PASS.
 
 ## Steps
 
@@ -33,4 +33,4 @@ The rerun prints PASS. Put up a green sticky.
 
 ## If you're stuck
 
-Read the `guard:` line the rerun prints. The guide's [Lab 4 section](../docs/troubleshooting.md#lab-4-your-guardspy-edit) explains each message. Stuck for more than 5 minutes? Ask your TA.
+Read the `guard:` line the rerun prints. The guide's [Lab 4 section](../docs/troubleshooting.md#lab-4-your-guardspy-edit) explains each message. Still stuck? Ask your TA.

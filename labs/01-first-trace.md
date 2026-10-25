@@ -6,7 +6,7 @@ Run TripMate once and open its trace in Langfuse.
 
 ## When
 
-00:10 to 00:20. Checkpoint 1 is at 00:15 to 00:20.
+Part 1, right after the opening. Checkpoint 1 is your own trace in Langfuse.
 
 ## Steps
 

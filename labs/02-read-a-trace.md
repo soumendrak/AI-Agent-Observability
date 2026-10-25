@@ -6,19 +6,19 @@ Read a trace as data: spans, types, arguments and tokens, plus latency percentil
 
 ## When
 
-00:20 to 00:45. You work on the worksheet from 00:28 to 00:38, and checkpoint 2 is at 00:45.
+Part 2. You work on the worksheet while the 50 runs finish. Checkpoint 2 is reading your own p50, p95 and p99.
 
 ## Steps
 
 1. Open the root `tripmate` from Lab 1. Look at its input and its output.
-2. Start 50 runs in a second terminal. They take a few minutes:
+2. Start 50 runs in a second terminal:
    ```
    uv run ws load -n 50
    ```
 3. With a partner if you have one, answer worksheet part A (Q1 to Q5) from your Lab 1 trace.
-4. When the load finishes, its last line reads `latency over 50 runs: mean ..., p50 ..., p95 ..., p99 ...`. Copy those four numbers into the percentile table on the worksheet: the p99 there is this line's p99. Then open the latency view in Langfuse for the same runs. Its numbers can differ a little, because Langfuse times each trace on its own and may use another percentile method ([maths appendix B0](../docs/maths-appendix.md#b0-percentiles-on-small-samples)).
+4. When the load finishes, its last line reads `latency over 50 runs: mean ..., p50 ..., p95 ..., p99 ...`. Copy those four numbers into the percentile table on the worksheet: the p99 there is this line's p99. Then open the Latency dashboard in Langfuse (**Dashboards** in your project) for the same runs. Its numbers can differ a little, because Langfuse times each trace on its own and may use another percentile method ([maths appendix B0](../docs/maths-appendix.md#b0-percentiles-on-small-samples)).
 
-> **Soumen:** where to find the latency view and percentiles in Langfuse, with a screenshot.
+> **Soumen:** a screenshot of the Latency dashboard with the percentiles.
 
 ## Checkpoint
 
