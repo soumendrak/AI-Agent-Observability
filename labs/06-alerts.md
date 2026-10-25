@@ -6,7 +6,7 @@ Build an alert that can tell "not measured" from "failing".
 
 ## When
 
-02:20 to 02:40. Soumen demos this with two pre-built alerts on his project: the same pass-rate alert, one on the default no-data mode and one on NO_DATA. Building your own is optional, and Hobby accounts allow 2 alerts.
+Part 5. Soumen demos this with two pre-built alerts on his project: the same pass-rate alert, one on the default no-data mode and one on NO_DATA. Building your own is optional, and Hobby accounts allow 2 alerts.
 
 If you created the alert at the start of Lab 5, it started on NO_DATA. If you create it now, your Lab 5 scores already exist, so it can go straight to ALERT.
 
@@ -30,4 +30,4 @@ You can explain the difference between NO_DATA and ALERT.
 
 ## If you're stuck
 
-Alert evaluation can take a few minutes. Watch Soumen's pre-built alerts on the projector.
+Alert evaluation is not instant. Watch Soumen's pre-built alerts on the projector.

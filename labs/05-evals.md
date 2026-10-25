@@ -6,7 +6,7 @@ Score every booking automatically: compare the structured request with the struc
 
 ## When
 
-01:40 to 02:15. You build from 01:50 to 02:05. Checkpoint 5 is at 02:00 and checkpoint 6 at 02:05.
+Part 4. You build the evaluator, then test it, then make fresh traffic. Checkpoint 5 is the two test results. Checkpoint 6 is scores on the new traffic.
 
 ## Steps
 
