@@ -373,7 +373,7 @@ The guide below follows the workshop slides. Times are the slide times, counted 
 
 Lab 0 is the setup you just did. Each lab file in [labs/](labs/) has the same steps with more detail, and [docs/](docs/) holds the extras. Every command you need is below.
 
-If the wifi or Langfuse is down, add `--exporter console` to any command in these labs. The terminal then prints the trace and sends nothing. The Langfuse clicks need a connection, so pair with a neighbour for those.
+If the wifi or Langfuse is down, add `--exporter console` to the commands in Labs 1 to 4. The terminal then prints the trace and sends nothing. The Langfuse clicks need a connection, so pair with a neighbour for those. Labs 5 and 6 need Langfuse.
 
 ### Lab 1. First trace
 
@@ -730,7 +730,7 @@ All commands run from the repo folder, and work the same in PowerShell and in ma
 
 `--exporter console` works with every command except `doctor`. Use it if the wifi or Langfuse is down. The cases and the rerun check all work offline.
 
-Two more flags show up in the labs. `--guard off` turns your guard off, so you can see the broken run again. `--score sdk` scores each trace from your terminal, as a fallback when the Langfuse evaluator is not available.
+Two more flags show up in the labs. `--guard off` turns your guard off, so you can see the broken run again. `--score sdk` scores each trace from your terminal and sends the score to Langfuse. It is a fallback for when the Langfuse evaluator is not available. It needs a connection, so you cannot combine it with `--exporter console`.
 
 ## Before the workshop
 
