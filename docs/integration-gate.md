@@ -16,18 +16,37 @@ Keep a notes file open. Each step says what to record.
 
 1. Sign up at https://cloud.langfuse.com (EU) or https://us.cloud.langfuse.com (US). Create an organization and a project named `tripmate-workshop`.
 2. Project settings > API Keys > Create new API keys. Keep the tab open; the secret key is shown once.
-3. Install uv if needed:
+3. Check uv and git first, and install only what is missing:
+   ```
+   uv --version
+   git --version
+   ```
+   A version number means that tool is installed, so skip its install. `command not found` or `is not recognized` means install it from README steps 2 and 3. Those steps hold the install commands for macOS, Windows and Linux. The uv ones are:
    - macOS/Linux: `curl -LsSf https://astral.sh/uv/install.sh | sh`
    - Windows: `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`
-4. Clone and install (the gate runs on `main`):
+4. Clone and install (the gate runs on `main`). First check for an earlier clone:
+   ```
+   git -C gate-check rev-parse --is-inside-work-tree
+   ```
+   `true` means it exists, so update it instead of cloning again:
+   ```
+   cd gate-check
+   git pull --ff-only
+   uv sync
+   ```
+   A `fatal:` line means there is no clone yet:
    ```
    git clone https://github.com/soumendrak/AI-Agent-Observability gate-check
    cd gate-check
    uv sync
    ```
-5. Create `.env`:
+5. Create `.env` only if it is missing. Check first:
+   - macOS/Linux: `ls .env`
+   - Windows: `Test-Path .env`
+
+   If it shows `.env` or `True`, keep the file. Otherwise copy the example:
    - macOS/Linux: `cp .env.example .env`
-   - Windows: `copy .env.example .env`
+   - Windows: `Copy-Item .env.example .env`
 
    Open `.env` and set `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` and `LANGFUSE_BASE_URL` (the region URL from step 1, no trailing slash). Leave `LLM_MODE=fake`.
 6. Check the setup:

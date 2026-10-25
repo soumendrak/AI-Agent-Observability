@@ -94,15 +94,293 @@ def test_setup_anchor_is_stable() -> None:
     assert "../README.md#setup)" in setup
 
 
-CLOCK_OR_MINUTES = re.compile(r"\b\d{2}:\d{2}\b|\bminutes?\b", re.IGNORECASE)
+CLOCK_OR_DURATION = re.compile(
+    r"\b\d{2}:\d{2}\b"
+    r"|\b(?:minutes?|hours?|hrs?|mins?|seconds|secs?)\b"
+    r"|\b\d+\s?(?:seconds?|secs?|s|ms|h|hrs?)\b",
+    re.IGNORECASE,
+)
+ALLOWED_TIME_TEXT = re.compile(r"\b\d+\.\d+s\b|after 30 s\b")
 
 
-TIMELESS = [ROOT / "README.md", *sorted(ROOT.glob("labs/*.md"))]
+def states_a_time(text: str) -> bool:
+    return bool(CLOCK_OR_DURATION.search(ALLOWED_TIME_TEXT.sub("", text)))
+
+
+TIMELESS = [
+    ROOT / "README.md",
+    ROOT / "docs" / "troubleshooting.md",
+    *sorted(ROOT.glob("labs/*.md")),
+]
 
 
 @pytest.mark.parametrize("doc", TIMELESS, ids=lambda p: p.name)
 def test_readme_and_labs_state_no_times(doc: Path) -> None:
-    assert not CLOCK_OR_MINUTES.search(doc.read_text(encoding="utf-8"))
+    assert not states_a_time(doc.read_text(encoding="utf-8"))
+
+
+@pytest.mark.parametrize(
+    "added",
+    [
+        "Wait 2 hours.",
+        "Wait 30 seconds.",
+        "Wait 30s.",
+        "Wait 5 min.",
+        "It takes 5 minutes.",
+        "Start at 09:30.",
+        "after 31 s",
+    ],
+)
+def test_the_no_times_check_catches_every_unit(added: str) -> None:
+    assert states_a_time(f"Run `uv sync`. {added}")
+
+
+@pytest.mark.parametrize(
+    "allowed",
+    [
+        "run 1/50: PASS in 0.70s",
+        "mean 0.79s, p50 0.71s",
+        "after 30 s",
+        "the second terminal",
+        "an optional second alert",
+    ],
+)
+def test_the_no_times_check_allows_sample_output_and_ordinals(allowed: str) -> None:
+    assert not states_a_time(allowed)
+
+
+CHECK_BEFORE_INSTALL = {
+    "uv --version": (
+        "curl -LsSf https://astral.sh/uv/install.sh | sh",
+        "wget -qO- https://astral.sh/uv/install.sh | sh",
+        "irm https://astral.sh/uv/install.ps1 | iex",
+        "winget install --id=astral-sh.uv",
+    ),
+    "git --version": (
+        "xcode-select --install",
+        "winget install --id Git.Git",
+        "sudo apt-get install git",
+        "sudo dnf install git",
+    ),
+}
+SKIP_PHRASES = ("skip to the next step", "skip its install")
+CHECK_FIRST_DOCS = [
+    ROOT / "README.md",
+    ROOT / "docs" / "troubleshooting.md",
+    ROOT / "docs" / "integration-gate.md",
+]
+BOUNDARY = re.compile(r"^(?:#{1,6} |\d+\. )", re.MULTILINE)
+
+
+def lead_in(text: str, at: int) -> str:
+    row_start = text.rfind("\n", 0, at) + 1
+    if text[row_start] == "|":
+        return text[row_start:at]
+    starts = [m.start() for m in BOUNDARY.finditer(text, 0, at)]
+    return text[starts[-1] if starts else 0 : at]
+
+
+def is_gated(lead: str, check: str) -> bool:
+    only_if = f"only if `{check}` fails"
+    if only_if in lead:
+        return True
+    return any(check in lead and lead.rfind(phrase) > lead.find(check) for phrase in SKIP_PHRASES)
+
+
+def ungated_installs(text: str) -> list[str]:
+    found: list[str] = []
+    for check, installs in CHECK_BEFORE_INSTALL.items():
+        for install in installs:
+            for match in re.finditer(re.escape(install), text):
+                if not is_gated(lead_in(text, match.start()), check):
+                    found.append(f"{install} at {match.start()}")
+    return found
+
+
+@pytest.mark.parametrize("doc", CHECK_FIRST_DOCS, ids=lambda p: p.name)
+def test_every_install_command_is_gated_by_its_own_check(doc: Path) -> None:
+    assert ungated_installs(doc.read_text(encoding="utf-8")) == []
+
+
+def test_every_doc_that_installs_runs_the_check_first() -> None:
+    for doc in CHECK_FIRST_DOCS:
+        text = doc.read_text(encoding="utf-8")
+        for check, installs in CHECK_BEFORE_INSTALL.items():
+            if any(install in text for install in installs):
+                assert check in text, f"{doc.name} installs without {check}"
+
+
+def troubleshooting() -> str:
+    return (ROOT / "docs" / "troubleshooting.md").read_text(encoding="utf-8")
+
+
+@pytest.mark.parametrize(
+    ("doc", "phrase"),
+    [
+        ("docs/troubleshooting.md", "only if `uv --version` fails"),
+        ("README.md", "If you saw a version number, skip to the next step."),
+        ("docs/integration-gate.md", "so skip its install"),
+    ],
+)
+def test_removing_a_gate_phrase_makes_the_check_fail(doc: str, phrase: str) -> None:
+    text = (ROOT / doc).read_text(encoding="utf-8")
+    assert phrase in text
+    assert ungated_installs(text.replace(phrase, "")) != []
+
+
+def test_a_gate_for_one_tool_does_not_cover_another() -> None:
+    row = "| x | only if `uv --version` fails, run `winget install --id Git.Git -e` |"
+    assert ungated_installs(row) == [f"winget install --id Git.Git at {row.index('winget')}"]
+
+
+def test_an_install_in_the_next_row_is_not_gated_by_the_row_above() -> None:
+    text = (
+        "| a | only if `uv --version` fails, install |\n"
+        "| b | `winget install --id=astral-sh.uv -e` |\n"
+    )
+    assert len(ungated_installs(text)) == 1
+
+
+def test_a_skip_line_after_the_install_gates_nothing() -> None:
+    text = (
+        "### Step\n\nuv --version\n\n"
+        "curl -LsSf https://astral.sh/uv/install.sh | sh\n\n"
+        "skip to the next step\n"
+    )
+    assert len(ungated_installs(text)) == 1
+
+
+def readme() -> str:
+    return (ROOT / "README.md").read_text(encoding="utf-8")
+
+
+def section(text: str, heading: str) -> str:
+    return text.split(heading, 1)[1].split("\n## ", 1)[0].split("\n### ", 1)[0]
+
+
+def test_readme_covers_every_install_command_for_every_os() -> None:
+    body = readme()
+    for install in (
+        "curl -LsSf https://astral.sh/uv/install.sh | sh",
+        "wget -qO- https://astral.sh/uv/install.sh | sh",
+        'powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"',
+        "xcode-select --install",
+        "winget install --id Git.Git -e --source winget",
+        "sudo apt-get install git",
+        "sudo dnf install git",
+    ):
+        assert install in body, install
+
+
+def test_each_readme_install_is_gated_by_a_skip_line() -> None:
+    for heading, check in (("### Step 2.", "git --version"), ("### Step 3.", "uv --version")):
+        body = section(readme(), heading)
+        skip = body.index("If you saw a version number, skip to the next step.")
+        assert "If not, install it" in body
+        assert body.index(check) < skip
+        assert all(
+            skip < body.index(install) for install in CHECK_BEFORE_INSTALL[check] if install in body
+        )
+        for failure in ("command not found", "is not recognized"):
+            assert failure in body
+
+
+def test_the_wget_fallback_follows_the_curl_install() -> None:
+    body = section(readme(), "### Step 3.")
+    assert (
+        body.index("curl -LsSf") < body.index("curl: command not found") < body.index("wget -qO-")
+    )
+
+
+def test_step_5_pulls_if_the_clone_exists_and_clones_if_it_does_not() -> None:
+    body = section(readme(), "### Step 5.")
+    check = body.index("git -C AI-Agent-Observability rev-parse --is-inside-work-tree")
+    pull = body.index("git pull --ff-only")
+    clone = body.index("git clone https://github.com")
+    assert check < pull < clone
+    done = body.index("You are done with getting the code.")
+    assert pull < done < clone
+    assert body.index("cd AI-Agent-Observability") < pull
+    assert body.count("cd AI-Agent-Observability\n") == 3
+
+
+def test_step_5_moves_a_non_clone_aside_only_to_a_free_name() -> None:
+    body = section(readme(), "### Step 5.")
+    for check, move in (
+        ("ls AI-Agent-Observability-old", "mv AI-Agent-Observability AI-Agent-Observability-old"),
+        (
+            "Test-Path AI-Agent-Observability-old",
+            "Rename-Item AI-Agent-Observability AI-Agent-Observability-old",
+        ),
+    ):
+        assert body.index(check) < body.index(move) < body.rindex("git clone https://github.com")
+
+
+def test_env_is_checked_before_it_is_copied() -> None:
+    body = readme()
+    for check, copy in (
+        ("ls .env", "cp .env.example .env"),
+        ("Test-Path .env", "Copy-Item .env.example .env"),
+    ):
+        assert body.index(check) < body.index(copy), copy
+    gate = (ROOT / "docs" / "integration-gate.md").read_text(encoding="utf-8")
+    assert gate.index("Test-Path .env") < gate.index("Copy-Item .env.example .env")
+    assert gate.index("ls .env") < gate.index("cp .env.example .env")
+    assert gate.index("git -C gate-check rev-parse") < gate.index("git clone")
+
+
+def test_the_stash_is_gated_by_a_status_check() -> None:
+    body = section(readme(), "## Before the workshop")
+    status = body.index("git status --short")
+    assert status < body.index("If it prints nothing") < body.index("git stash push")
+
+
+def test_pull_never_runs_without_ff_only() -> None:
+    for doc in CHECK_FIRST_DOCS:
+        assert not re.search(r"git pull(?! --ff-only)", doc.read_text(encoding="utf-8")), doc.name
+
+
+def test_the_ff_only_failure_has_a_row_that_avoids_destructive_commands() -> None:
+    row = next(
+        line for line in troubleshooting().splitlines() if "Not possible to fast-forward" in line
+    )
+    assert "ask a ta" in row.lower()
+    for destructive in ("reset --hard", "push --force", "clean -f", "rm -rf", "checkout ."):
+        assert destructive not in troubleshooting()
+        assert destructive not in readme()
+
+
+def test_the_not_on_a_branch_rows_say_what_to_do_about_local_changes() -> None:
+    stash = 'git stash push --include-untracked -m "before-workshop"'
+    for text in (readme(), troubleshooting()):
+        row = next(
+            line for line in text.splitlines() if "You are not currently on a branch" in line
+        )
+        assert "git checkout main" in row
+        assert stash in row
+        assert "complains about local changes" in row
+
+
+def test_the_rename_aside_collision_has_a_troubleshooting_row() -> None:
+    row = next(
+        line
+        for line in troubleshooting().splitlines()
+        if line.startswith("|") and "Cannot create a file when that file already exists" in line
+    )
+    assert "AI-Agent-Observability-old2" in row
+
+
+def test_the_hidden_file_pointers_have_an_explanation_to_point_at() -> None:
+    body = section(readme(), "### Step 6.")
+    assert "starts with a dot" in body
+    assert "ls -a" in body
+    assert "ls -Force" in body
+    assert "Use the `ls` command in step 6" not in readme()
+
+
+def test_readme_does_not_promise_nothing_is_overwritten() -> None:
+    assert "nothing gets overwritten" not in readme().lower()
+    assert "none of your own files get overwritten if you follow the checks" in readme().lower()
 
 
 def test_readme_covers_the_five_minute_setup() -> None:

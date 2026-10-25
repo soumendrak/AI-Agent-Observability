@@ -25,10 +25,10 @@ Finish this list at home, before the day.
 - [ ] A laptop you can install software on. Not a locked work laptop.
 - [ ] A working internet connection.
 - [ ] A free Langfuse account and a project with API keys (Setup, step 4).
-- [ ] Git installed (Setup, step 2).
-- [ ] uv installed (Setup, step 3).
-- [ ] The code on your laptop (Setup, step 5).
-- [ ] A `.env` file with your keys (Setup, step 6).
+- [ ] Git checked, and installed only if it was missing (Setup, step 2).
+- [ ] uv checked, and installed only if it was missing (Setup, step 3).
+- [ ] The code on your laptop, new or updated (Setup, step 5).
+- [ ] A `.env` file with your keys, created only if it was missing (Setup, step 6).
 - [ ] `uv run ws doctor` ends with a `READY-` code (Setup, step 8).
 - [ ] Your READY code submitted on the form from the setup email.
 - [ ] A text editor. Notepad, TextEdit and nano all work.
@@ -57,7 +57,9 @@ If a step fails, go to [Common errors](#common-errors). Do not skip a failed ste
 
 You need a laptop you can install software on, a network connection and a Langfuse account. uv installs Python 3.12 for you. You do not install Python yourself.
 
-Every command in this guide goes in a terminal. Type it, or copy and paste it, then press Enter. Run one command at a time. Wait for it to finish before you run the next.
+Every command in this guide goes in a terminal. That is Terminal on macOS, PowerShell on Windows and Terminal on Linux. Type it, or copy and paste it, then press Enter. Run one command at a time. Wait for it to finish before you run the next.
+
+Every setup step checks first and installs only if something is missing. You can run the whole setup again on a laptop that is already set up. None of your own files get overwritten if you follow the checks.
 
 ### Step 1. Open a terminal
 
@@ -93,25 +95,31 @@ pwd
 
 It prints a folder path that holds your user name, such as `/Users/asha` on macOS or `/home/asha` on Linux. Windows PowerShell prints a small table with a `Path` heading. Read the path under it, such as `C:\Users\asha`. Do not use a folder that OneDrive, iCloud or Dropbox syncs.
 
-### Step 2. Install Git
+### Step 2. Check for Git, and install it only if it is missing
 
-Check whether you already have it.
+Type this in Terminal on macOS or Linux, or in PowerShell on Windows.
 
 ```
 git --version
 ```
 
-If a line starting with `git version` appears, go to step 3. The number after it can differ from anyone else's. That is fine.
+Success is one line that starts with `git version` and a number, such as `git version 2.47.3`. On Windows the number can end in `.windows.1`. Your number can differ from anyone else's. That is fine.
 
-If you see an error such as `command not found` or `not recognized`, install Git.
+Failure is an error instead of that line.
 
-macOS. Run this, click **Install** in the window that opens, then wait.
+- Linux shows `git: command not found`.
+- Windows shows `The term 'git' is not recognized`.
+- A Mac with no Git can open a window that offers to install the command line developer tools. If it does, click **Install** in it. That window is the install, so you can skip the macOS command below. When it says it is done, run `git --version` again.
+
+If you saw a version number, skip to the next step. If not, install it:
+
+macOS. Type this in Terminal, click **Install** in the window that opens, then wait.
 
 ```
 xcode-select --install
 ```
 
-Windows. Run this, then close PowerShell and open a new one.
+Windows. Type this in PowerShell, then close PowerShell and open a new one.
 
 ```
 winget install --id Git.Git -e --source winget
@@ -119,29 +127,53 @@ winget install --id Git.Git -e --source winget
 
 If `winget` is not found, download the installer from https://git-scm.com/download/win, run it and accept every default.
 
-Linux on Debian or Ubuntu.
+Linux on Debian or Ubuntu. Type this in Terminal.
 
 ```
 sudo apt-get install git
 ```
 
-Linux on Fedora.
+Linux on Fedora. Type this in Terminal.
 
 ```
 sudo dnf install git
 ```
 
+Another Linux? Find yours on https://git-scm.com/install/linux.
+
 Run `git --version` again. It must print a line starting with `git version`.
 
-### Step 3. Install uv
+### Step 3. Check for uv, and install it only if it is missing
 
-macOS or Linux.
+Type this in Terminal on macOS or Linux, or in PowerShell on Windows.
+
+```
+uv --version
+```
+
+Success is one line with `uv` and a number, such as `uv 0.13.5`. Your number can differ. That is fine.
+
+Failure is an error instead of that line.
+
+- macOS shows `zsh: command not found: uv`.
+- Linux shows `uv: command not found`.
+- Windows shows `The term 'uv' is not recognized`.
+
+If you saw a version number, skip to the next step. If not, install it:
+
+macOS or Linux. Type this in Terminal.
 
 ```
 curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-Windows (PowerShell). Copy the whole line.
+If it says `curl: command not found`, use this on Linux instead.
+
+```
+wget -qO- https://astral.sh/uv/install.sh | sh
+```
+
+Windows. Type this in PowerShell. Copy the whole line.
 
 ```
 powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
@@ -155,13 +187,13 @@ Now close the terminal and open a new one, as in step 1. A terminal that was ope
 cd ~
 ```
 
-Check uv.
+Run the check again.
 
 ```
 uv --version
 ```
 
-It prints `uv` and a version number. If it says `command not found` or `not recognized`, read [Windows traps](#windows-traps) or [docs/troubleshooting.md](docs/troubleshooting.md).
+It must print `uv` and a version number. If it still says `command not found` or `not recognized`, read [Windows traps](#windows-traps) or [docs/troubleshooting.md](docs/troubleshooting.md).
 
 ### Step 4. Make a Langfuse account and keys
 
@@ -176,19 +208,87 @@ Do this in your web browser.
 
 Langfuse shows the secret key only once, so do not close the tab before step 6. If you lose it, create a new key pair and delete the old one. Read [Never share your secret key](#never-share-your-secret-key) before you go on.
 
-### Step 5. Download the code
+### Step 5. Get the code, or update it if you already have it
+
+Move to your home folder.
+
+```
+cd ~
+```
+
+Check whether the folder is already there. Type this in Terminal on macOS or Linux, or in PowerShell on Windows.
+
+```
+git -C AI-Agent-Observability rev-parse --is-inside-work-tree
+```
+
+Read what it printed. There are three cases. Follow only the one that matches.
+
+**Case 1. It printed `true`.** You already have the code, so do not clone it again. Go into the folder and update it.
+
+```
+cd AI-Agent-Observability
+```
+
+```
+git pull --ff-only
+```
+
+It prints `Already up to date.` or a list of the files that changed. If it complains about local changes, says you are not on a branch, or says `Not possible to fast-forward`, read [Common errors](#common-errors). You are done with getting the code. Go to [Check you are in the repo folder](#check-you-are-in-the-repo-folder) and skip Cases 2 and 3.
+
+**Case 2. It printed `fatal: cannot change to 'AI-Agent-Observability': No such file or directory`.** You have no copy yet. Clone the code.
 
 ```
 git clone https://github.com/soumendrak/AI-Agent-Observability
 ```
 
-It prints `Cloning into 'AI-Agent-Observability'...` and then a few progress lines.
-
-Go into the new folder.
+It prints `Cloning into 'AI-Agent-Observability'...` and then a few progress lines. Go into the new folder.
 
 ```
 cd AI-Agent-Observability
 ```
+
+Go to [Check you are in the repo folder](#check-you-are-in-the-repo-folder) and skip Case 3.
+
+**Case 3. It printed `fatal: not a git repository`.** A folder with that name exists but is not a clone, such as a zip download. Move it aside, then clone. First check that the new name is free.
+
+macOS or Linux. Type this in Terminal.
+
+```
+ls AI-Agent-Observability-old
+```
+
+Windows. Type this in PowerShell.
+
+```
+Test-Path AI-Agent-Observability-old
+```
+
+Success, meaning the name is free, is `No such file or directory` on macOS or Linux and `False` on Windows. If you saw `True`, or a list of files, use `AI-Agent-Observability-old2` instead of `AI-Agent-Observability-old` in the next command, and check that name the same way.
+
+On macOS or Linux, type this in Terminal.
+
+```
+mv AI-Agent-Observability AI-Agent-Observability-old
+```
+
+On Windows, type this in PowerShell.
+
+```
+Rename-Item AI-Agent-Observability AI-Agent-Observability-old
+```
+
+Now clone the code, then go into the new folder.
+
+```
+git clone https://github.com/soumendrak/AI-Agent-Observability
+```
+
+```
+cd AI-Agent-Observability
+```
+
+#### Check you are in the repo folder
 
 From now on, every command runs in this folder. Check you are in it.
 
@@ -198,45 +298,49 @@ pwd
 
 The path must end with `AI-Agent-Observability`. In Windows PowerShell, `pwd` prints a small table with a `Path` heading, so read the path under that heading. If it does not end with `AI-Agent-Observability`, run `cd ~/AI-Agent-Observability`.
 
-Install everything the repo needs.
+Install everything the repo needs. This is safe to run again.
 
 ```
 uv sync
 ```
 
-It can take a while on slow wifi. It prints `Using CPython 3.12`, then `Creating virtual environment at: .venv`, then a long list of lines that start with `+`. It ends with no error.
+The first time, it can take a while on slow wifi. It prints `Using CPython 3.12`, then `Creating virtual environment at: .venv`, then a long list of lines that start with `+`. It ends with no error. When everything is already installed, it prints a `Checked` line and changes nothing.
 
-### Step 6. Add your keys to `.env`
+### Step 6. Add your keys to `.env`, and keep the file you already have
 
-Copy the example file. The copy is your private `.env` file.
+You are still in the repo folder. First check whether `.env` is already there.
 
-macOS or Linux.
+macOS or Linux. Type this in Terminal.
+
+```
+ls .env
+```
+
+Windows. Type this in PowerShell.
+
+```
+Test-Path .env
+```
+
+Success is `.env` on macOS or Linux, and `True` on Windows. Your file exists, so do not copy over it. A copy would erase the keys inside. Skip to opening the file below.
+
+The name `.env` starts with a dot, so Finder and File Explorer hide it, and a plain `ls` skips it. Naming the file, as in `ls .env`, still finds it. To list every hidden file, type `ls -a` in Terminal on macOS or Linux, or `ls -Force` in PowerShell. In File Explorer, turn on hidden items in the **View** menu.
+
+Failure is `No such file or directory` on macOS or Linux, and `False` on Windows. Copy the example file. The copy is your private `.env` file.
+
+macOS or Linux. Type this in Terminal.
 
 ```
 cp .env.example .env
 ```
 
-Windows (PowerShell).
+Windows. Type this in PowerShell.
 
 ```
 Copy-Item .env.example .env
 ```
 
-The command prints nothing when it works. Files that start with a dot are hidden. To see yours, list all files.
-
-macOS or Linux.
-
-```
-ls -a
-```
-
-Windows (PowerShell).
-
-```
-ls -Force
-```
-
-You see `.env` and `.env.example` in the list.
+The command prints nothing when it works. Run the check again. It must now show `.env` or `True`.
 
 Open `.env` in an editor.
 
@@ -260,7 +364,7 @@ nano .env
 
 If you installed VS Code and its `code` command works, `code .env` opens the file on all three systems. If you see `command not found` or `not recognized`, use the TextEdit, Notepad or nano command above instead.
 
-You see four lines. They are the same as `.env.example`.
+A new file has four lines. They are the same as `.env.example`. A file you had before shows your own values in place of the first two.
 
 ```
 LANGFUSE_PUBLIC_KEY=pk-lf-...
@@ -269,7 +373,7 @@ LANGFUSE_BASE_URL=https://cloud.langfuse.com
 LLM_MODE=fake
 ```
 
-Switch to the Langfuse tab from step 4. Replace the whole value on the first two lines with the key you copy from Langfuse. That includes the `pk-lf-...` and `sk-lf-...` text that is there now. After the edit, the first line holds your public key and nothing else after the `=`. The second line holds your secret key and nothing else after the `=`. If any placeholder or other leftover text stays in, doctor fails in step 8. It prints either the paste-your-keys message or an HTTP 401 error.
+Switch to the Langfuse tab from step 4. Replace the whole value on the first two lines with the key you copy from Langfuse. That includes the `pk-lf-...` and `sk-lf-...` text that is there now. After the edit, the first line holds your public key and nothing else after the `=`. The second line holds your secret key and nothing else after the `=`. If any placeholder or other leftover text stays in, doctor fails in step 8. It prints either the paste-your-keys message or an HTTP 401 error. If your old file already holds your real keys, leave them as they are.
 
 Then check the other lines.
 
@@ -317,7 +421,7 @@ trace: offline (--exporter console), nothing was sent to Langfuse
 
 Read it from the top. The first line is the whole run. Each indented line is a span inside it. The words `generation` and `tool` tell you what kind of step it was. `OK` means the step worked.
 
-If this fails, the install is the problem and your keys are not. Run `uv sync` again and check that `pwd` ends with `AI-Agent-Observability`.
+If this fails, the install is the problem and your keys are not. Run `uv sync` again and check that `pwd` ends with `AI-Agent-Observability`. You can run this step as often as you like.
 
 ### Step 8. Run doctor
 
@@ -350,7 +454,7 @@ If you copied the example file and did not paste your keys yet, it prints this.
 [FAIL] paste your project's keys into .env (pk-lf-... and sk-lf-...)
 ```
 
-Fix the line that doctor names, then run `uv run ws doctor` again. Find your message in [Common errors](#common-errors). You are done with setup when you see `READY-`.
+Fix the line that doctor names, then run `uv run ws doctor` again. It is safe to run as often as you like. Find your message in [Common errors](#common-errors). You are done with setup when you see `READY-`.
 
 ## The day, lab by lab
 
@@ -656,7 +760,7 @@ If you do not see this:
 
 | You see | Fix |
 |---|---|
-| `[FAIL] no .env here; copy .env.example to .env in the repo folder` | Run the copy command from step 6 inside the repo folder |
+| `[FAIL] no .env here; copy .env.example to .env in the repo folder` | Run the `.env` check from step 6 inside the repo folder, then the copy command only if the check fails |
 | `error: missing LANGFUSE_PUBLIC_KEY...` | Same cause from `ws run` or `ws case`: create `.env` as in step 6, or add `--exporter console` |
 | `[FAIL] paste your project's keys into .env (pk-lf-... and sk-lf-...)` | Replace the placeholders with your project's API keys |
 | `[FAIL] the keys are swapped; LANGFUSE_PUBLIC_KEY starts with pk-lf-` | Swap the two key values in `.env` |
@@ -673,22 +777,27 @@ Other things that go wrong before any message appears:
 
 | You see | Fix |
 |---|---|
-| `git: command not found` or `'git' is not recognized` | Install Git (step 2), then open a new terminal |
-| `uv: command not found` or `'uv' is not recognized` | Open a new terminal. If it still fails, run the install again (step 3) |
+| `git: command not found` or `'git' is not recognized` | Run `git --version`. If it fails, install Git (step 2), then open a new terminal |
+| `uv: command not found` or `'uv' is not recognized` | Open a new terminal and run `uv --version`. If it still fails, install uv (step 3), then open a new terminal |
+| `fatal: destination path 'AI-Agent-Observability' already exists and is not an empty directory` | You already have the folder. Do not clone again. Run `cd ~/AI-Agent-Observability`, then `git pull --ff-only` (step 5) |
+| `git pull --ff-only` says your local changes would be overwritten | Set your edits aside with `git stash push --include-untracked -m "before-workshop"`, then run `git pull --ff-only` again |
+| `git pull --ff-only` says `You are not currently on a branch` | You are on the fixed workshop version. Run `git checkout main`, then `git pull --ff-only`. If `git checkout main` complains about local changes, run `git stash push --include-untracked -m "before-workshop"` first, then `git checkout main`, then `git pull --ff-only` |
+| `git pull --ff-only` says `Not possible to fast-forward` | Your copy has a change that the workshop copy does not. Nothing was changed and your files are safe. Ask a TA, or post the exact message in the workshop chat. Ignore the hints about merge and rebase. Do not try other git commands to force it. Details are in [docs/troubleshooting.md](docs/troubleshooting.md) |
+| `Rename-Item` says `Cannot create a file when that file already exists` | A folder called `AI-Agent-Observability-old` is already there. Repeat the move in step 5 with `AI-Agent-Observability-old2` |
 | `No such file or directory` or `Cannot find path` after a `cd` | Run `pwd`. Then run `cd ~/AI-Agent-Observability` |
 | `No pyproject.toml found` or `Failed to spawn: ws` | You are in the wrong folder. Run `cd ~/AI-Agent-Observability` |
-| You cannot find `.env` in your file browser | The name starts with a dot, so it is hidden. Use the `ls` command in step 6 or open it from the terminal |
+| You cannot find `.env` in your file browser | The name starts with a dot, so it is hidden. Run the `.env` check in step 6, or open it from the terminal |
 
 Every message, with more detail, is in [docs/troubleshooting.md](docs/troubleshooting.md).
 
 ## Windows traps
 
 - **Scripts are blocked.** PowerShell can refuse to run scripts. The uv install line already contains `-ExecutionPolicy ByPass`, which allows the installer for that one command and changes nothing else. Do not change your system policy.
-- **Open a new terminal after installing uv or Git.** The old window does not see them.
+- **Open a new terminal after installing uv or Git.** The old window does not see them. If the check printed a version number, you installed nothing and need no new terminal.
 - **Use PowerShell.** Command Prompt (`cmd`) does not understand `Copy-Item` or `Get-Content`.
 - **Line endings.** Windows and Linux end lines differently. You do not need to change anything. The repo's own tests run on Windows.
 - **Hidden files.** `ls -Force` shows `.env`. In File Explorer, turn on hidden items in the **View** menu.
-- **Notepad adds `.txt`.** If you create `.env` by hand in a save dialog, the name can become `.env.txt`. Use the `Copy-Item` command in step 6 instead.
+- **Notepad adds `.txt`.** If you create `.env` by hand in a save dialog, the name can become `.env.txt`. Use the `Test-Path` check and the `Copy-Item` command in step 6 instead.
 
 ## If you are stuck
 
@@ -734,6 +843,14 @@ Two more flags show up in the labs. `--guard off` turns your guard off, so you c
 You'll edit one function in `src/tripmate/guards.py` during the workshop. Any editor works. Please don't edit it before the day. If you already did, `uv run ws doctor` warns you, and the final email tells you how to set it aside.
 
 On Friday 30 October you'll get the exact commands to switch to the final version. They look like this. Run them one at a time, in the repo folder.
+
+First check whether you have anything to set aside.
+
+```
+git status --short
+```
+
+If it prints nothing, you have no edits. Skip the `git stash` command below. If it prints file names, run the `git stash` command.
 
 ```
 git fetch --tags
