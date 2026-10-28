@@ -22,8 +22,6 @@ If you created the alert at the start of Lab 5, it started on NO_DATA. If you cr
    uv run ws load -n 40 --case 2 --guard off
    ```
 
-> **Soumen:** screenshots of both alert states (NO_DATA and ALERT), and of the webhook payload.
-
 ## Checkpoint
 
 You can explain the difference between NO_DATA and ALERT.

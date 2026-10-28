@@ -52,7 +52,7 @@ def make_tools(requested: Fields, guard: Guard) -> list[BaseTool]:
         try:
             guard(requested, args)
         except (ValueError, AssertionError) as error:
-            reason = str(error) or "assert failed"
+            reason = str(error) or type(error).__name__
             raise ValueError(
                 reason if GUARD_REJECTION in reason else f"{GUARD_REJECTION}: {reason}"
             ) from error

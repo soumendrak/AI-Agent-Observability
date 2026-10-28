@@ -1,6 +1,6 @@
 # Labs
 
-Each lab has the same sections: goal, when it runs, steps, checkpoint, and what to do if you're stuck. Lines starting with **Soumen:** are placeholders for the guide text and screenshots. They're written on Fri 23 Oct, against the merged build.
+Each lab has the same sections: goal, when it runs, steps, checkpoint, and what to do if you're stuck.
 
 | Lab | When | File |
 |---|---|---|

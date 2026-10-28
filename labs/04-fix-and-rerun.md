@@ -16,7 +16,7 @@ Part 3, straight after Lab 3. Checkpoint 4 is a rerun that prints PASS.
    ```
    uv run ws case 2 --rerun
    ```
-4. Expect a red `book_flight` span (your guard caught it, and that red is good), then a corrected booking, then `booking_matches_request: PASS (local check, same logic as the Langfuse evaluator)`.
+4. The terminal ends with `booking_matches_request: PASS (local check, same logic as the Langfuse evaluator)`. In the new Langfuse trace, expect a red `book_flight` span (your guard caught it, and that red is good), then a corrected booking.
 5. Open the new trace and compare its root with the old one.
 6. To see the original bug again, even with your fix in place:
    ```
@@ -24,8 +24,6 @@ Part 3, straight after Lab 3. Checkpoint 4 is a rerun that prints PASS.
    ```
 
 The guard prevents the wrong action before it happens. The evaluator, in Lab 5, checks the recorded outcome afterwards.
-
-> **Soumen:** pseudo-code from the slide, and a screenshot of a successful rerun.
 
 ## Checkpoint
 

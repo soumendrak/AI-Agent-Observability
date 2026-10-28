@@ -31,6 +31,7 @@ Finish this list at home, before the day.
 - [ ] A `.env` file with your keys, created only if it was missing (Setup, step 6).
 - [ ] `uv run ws doctor` ends with a `READY-` code (Setup, step 8).
 - [ ] Your READY code submitted on the form from the setup email.
+- [ ] On Friday 30 October, the switch to the final version from the email ([Before the workshop](#before-the-workshop)).
 - [ ] A text editor. Notepad, TextEdit and nano all work.
 - [ ] Your charger.
 
@@ -128,6 +129,10 @@ winget install --id Git.Git -e --source winget
 If `winget` is not found, download the installer from https://git-scm.com/download/win, run it and accept every default.
 
 Linux on Debian or Ubuntu. Type this in Terminal.
+
+```
+sudo apt-get update
+```
 
 ```
 sudo apt-get install git
@@ -433,6 +438,21 @@ Doctor checks your setup one line at a time. It stops at the first `[FAIL]` line
 
 If your keys are right, every check prints `[OK]` at the start of its line. The checks cover your Python version, the `.env` file, the shape of your keys, `LLM_MODE=fake` and a real call to your Langfuse project. The last two lines are the test trace link and a code such as `READY-7F3A`. The link line reads `[OK] hello trace:` and then the link. Your code differs. It comes from your project.
 
+A good run looks like this. Your link and code differ.
+
+```
+[OK] Python 3.12
+[OK] .env found
+[OK] keys look right
+[OK] LLM_MODE=fake
+[OK] guards.py is the original
+[OK] Langfuse project tripmate-workshop at https://cloud.langfuse.com
+[OK] hello trace: https://cloud.langfuse.com/project/cm1abc.../traces/4f2e...
+READY-7F3A
+```
+
+From Thursday 29 October you may also see a line that starts with `[WARN] v2026.10.31 isn't in this clone yet` or `[WARN] not on the workshop version`. That is fine. You still get your READY code. You fix it on Friday with the commands in [Before the workshop](#before-the-workshop).
+
 1. Open the link from the `[OK] hello trace:` line in your browser. You see the test trace that doctor just sent. If you cannot click the link, copy it into the address bar.
 2. Copy your `READY-` code.
 3. Paste it into the form from the setup email.
@@ -455,6 +475,38 @@ If you copied the example file and did not paste your keys yet, it prints this.
 ```
 
 Fix the line that doctor names, then run `uv run ws doctor` again. It is safe to run as often as you like. Find your message in [Common errors](#common-errors). You are done with setup when you see `READY-`.
+
+## Before the workshop
+
+You'll edit one function in `src/tripmate/guards.py` during the workshop. Any editor works. Please don't edit it before the day. If you already did, `uv run ws doctor` warns you, and the final email tells you how to set it aside.
+
+On Friday 30 October you'll get the exact commands to switch to the final version. They look like this. Run them one at a time, in the repo folder.
+
+First check whether you have anything to set aside.
+
+```
+git status --short
+```
+
+If it prints nothing, you have no edits. Skip the `git stash` command below. If it prints file names, run the `git stash` command.
+
+```
+git fetch --tags
+```
+
+```
+git stash push --include-untracked -m "before-workshop"
+```
+
+```
+git checkout v2026.10.31
+```
+
+```
+uv sync
+```
+
+Git then prints a long note about a `detached HEAD`. That is expected. It means you are looking at a fixed version of the code.
 
 ## The day, lab by lab
 
@@ -579,7 +631,7 @@ uv run ws case 2
 
 Open the trace link it prints. Nothing is red, so the level filter shows nothing. Clear it and carry on with the other steps. Fill in Part B (the evidence table) of the [worksheet](labs/worksheet.md) with your partner. Then write Part C, one sentence.
 
-The root cause is not in this README on purpose. This repo is public, so hints are shown live and answers are with the TAs. The full lab text is in [labs/03-incident.md](labs/03-incident.md).
+The root cause is not in this README on purpose. Hints are shown live, one at a time. This repo is public, so the answer is in it too: please don't open `tests/`, `src/tripmate/cases.py` or `docs/integration-gate.md` until Lab 4 is done. The full lab text is in [labs/03-incident.md](labs/03-incident.md).
 
 You are done when your sentence says what went wrong, where it shows in the trace and why the confirmation hid it. A TA checks it. That is checkpoint 3.
 
@@ -600,11 +652,13 @@ You now edit one file. The edit makes the agent refuse a wrong booking.
 
 1. Open `src/tripmate/guards.py` in your editor.
 
-macOS.
+macOS. Use nano, which comes with your Mac.
 
 ```
-open -e src/tripmate/guards.py
+nano src/tripmate/guards.py
 ```
+
+Do not use TextEdit for this file. It turns `"` into curly quotes, and Python cannot read curly quotes. If you have VS Code and its `code` command works, `code src/tripmate/guards.py` also works.
 
 Windows (PowerShell).
 
@@ -629,8 +683,14 @@ def validate_booking(requested: dict[str, str], args: dict[str, str]) -> None:
 ```
 
 3. Replace the line `return` with your own code. Keep the four spaces in front of each line you write. Python needs them. Use spaces, not the Tab key.
-4. Make the function raise a `ValueError` if the origin, destination or date in `args` differs from `requested`.
-5. Save the file.
+4. Make the function raise a `ValueError` if the origin, destination or date in `args` differs from `requested`. Here is the check for one field. Write the same for the other two.
+
+```python
+    if args["origin"] != requested["origin"]:
+        raise ValueError("does not match request: origin")
+```
+
+5. Save the file. In nano press Ctrl and O, then Enter, then Ctrl and X. In Notepad use Ctrl and S.
 
 If Python syntax is new to you, ask a TA. They can help with the syntax without giving away the fix.
 
@@ -640,13 +700,13 @@ If Python syntax is new to you, ask a TA. They can help with the syntax without 
 uv run ws case 2 --rerun
 ```
 
-7. Read the output. A `guard:` line shows what your guard did. Expect a red `book_flight` span. Your guard caught the bad call, so that red is good. Then expect a corrected booking and a last check line.
+7. Read the output. A `guard:` line shows what your guard did. The last line is the check.
 
 ```
 booking_matches_request: PASS (local check, same logic as the Langfuse evaluator)
 ```
 
-8. Open the new trace in Langfuse and compare its `tripmate` span with the one from the old Case 2 trace.
+8. Open the new trace in Langfuse. The terminal does not show the spans, but Langfuse does. Expect a red `book_flight` span. Your guard caught the bad call, so that red is good. Below it is a second, green `book_flight` with the corrected booking. Compare its `tripmate` span with the one from the old Case 2 trace.
 9. Now turn the guard off to see the original bug again, even with your fix in place.
 
 ```
@@ -695,10 +755,10 @@ cat evals/booking_matches.py
 3. In Langfuse, open **Evaluators** in the left menu.
 4. Click **New evaluator**, then choose **Code evaluator**, then choose **Python**.
 5. Paste the code. Replace everything that is in the editor.
-6. Set the target to the root observations named `tripmate`. Langfuse lets you filter by **Is Root Observation** and by name. Do not save yet.
+6. Set the target. In the sample filters on the right, set **Is Root Observation** to `true` and **Name** to `tripmate`. Do not save yet.
 7. Test first. Pick your old Case 2 trace as the sample and run the test. Expect `false`, with a comment.
 8. Test again on the trace from your `--rerun`. Expect `true`.
-9. Save the evaluator with a rule on new data.
+9. Save the evaluator. Create a rule with the same two filters (**Is Root Observation** `true`, **Name** `tripmate`). Choose **new data only** and sampling 100%. Save the rule.
 10. Make fresh traffic. Run these three commands, one after the other.
 
 ```
@@ -722,7 +782,7 @@ You are done when the evaluator says `false` on the old Case 2 trace and `true` 
 If you do not see this:
 
 - The test error says `missing field`. You picked the wrong observation or an old trace. Use the `tripmate` span from a fresh run.
-- You cannot find **Code evaluator**, or your TA picks the fallback. Read `src/tripmate/checks.py` and add `--score sdk` to the commands in step 10. Your terminal then scores each run and the scores arrive in Langfuse.
+- You cannot find **Code evaluator**. Read `src/tripmate/checks.py` and add `--score sdk` to the commands in step 10. Your terminal then scores each run and the scores arrive in Langfuse.
 - Scores still do not show after you reload. Reload the page and check that the evaluator and its rule are saved.
 
 ### Lab 6. Alerts (optional)
@@ -838,37 +898,14 @@ All commands run from the repo folder, and work the same in PowerShell and in ma
 
 Two more flags show up in the labs. `--guard off` turns your guard off, so you can see the broken run again. `--score sdk` scores each trace from your terminal and sends the score to Langfuse. It is a fallback for when the Langfuse evaluator is not available. It needs a connection, so you cannot combine it with `--exporter console`.
 
-## Before the workshop
+## After the workshop
 
-You'll edit one function in `src/tripmate/guards.py` during the workshop. Any editor works. Please don't edit it before the day. If you already did, `uv run ws doctor` warns you, and the final email tells you how to set it aside.
-
-On Friday 30 October you'll get the exact commands to switch to the final version. They look like this. Run them one at a time, in the repo folder.
-
-First check whether you have anything to set aside.
-
-```
-git status --short
-```
-
-If it prints nothing, you have no edits. Skip the `git stash` command below. If it prints file names, run the `git stash` command.
-
-```
-git fetch --tags
-```
-
-```
-git stash push --include-untracked -m "before-workshop"
-```
-
-```
-git checkout v2026.10.31
-```
-
-```
-uv sync
-```
-
-Git then prints a long note about a `detached HEAD`. That is expected. It means you are looking at a fixed version of the code.
+- Practise with the [homework](docs/homework.md). It uses the same repo.
+- Take the [production checklist](docs/production-checklist.md) to your own agent.
+- See TripMate with a real model in [docs/real-model.md](docs/real-model.md). It needs an OpenAI-compatible key.
+- Try an LLM judge next to the code evaluator with [evals/judge_prompt.md](evals/judge_prompt.md).
+- Read the numbers behind percentiles, pass rates and alerts in the [maths appendix](docs/maths-appendix.md).
+- Done with the project? Open the Langfuse project **Settings** and **API Keys** and delete the key pair. Then delete `.env`.
 
 ## Privacy
 

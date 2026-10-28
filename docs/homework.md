@@ -12,5 +12,3 @@ Do these after the workshop, in any order. They all use the same repo.
 3. **Your own agent.** Add the Langfuse `CallbackHandler` to an agent of your own. Wrap each run in a root observation that holds the structured request as input and the structured result as output, as `src/tripmate/agent.py` does. Then write one code evaluator for your most expensive mistake.
 4. **The production checklist.** Go through [production-checklist.md](production-checklist.md) and mark which items your agent already does.
 5. **The maths.** Read the [maths appendix](maths-appendix.md). Then work out the 95% interval for your own evaluator's pass rate on 20 runs.
-
-> **Soumen:** add Cases 3 to 6 here if they ship.
