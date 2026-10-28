@@ -15,8 +15,6 @@ At home, after the setup email.
 3. Open the printed hello-trace link and check you can see the trace.
 4. Submit your READY code, and your partner's name if you're pairing, on the form from the setup email.
 
-> **Soumen:** screenshot of a green `ws doctor` run and of the hello trace in Langfuse.
-
 ## Checkpoint
 
 You have a READY code, and the hello trace opens in your Langfuse project.

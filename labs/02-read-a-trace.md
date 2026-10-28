@@ -18,8 +18,6 @@ Part 2. You work on the worksheet while the 50 runs finish. Checkpoint 2 is read
 3. With a partner if you have one, answer worksheet part A (Q1 to Q5) from your Lab 1 trace.
 4. When the load finishes, its last line reads `latency over 50 runs: mean ..., p50 ..., p95 ..., p99 ...`. Copy those four numbers into the percentile table on the worksheet: the p99 there is this line's p99. Then open the Latency dashboard in Langfuse (**Dashboards** in your project) for the same runs. Its numbers can differ a little, because Langfuse times each trace on its own and may use another percentile method ([maths appendix B0](../docs/maths-appendix.md#b0-percentiles-on-small-samples)).
 
-> **Soumen:** a screenshot of the Latency dashboard with the percentiles.
-
 ## Checkpoint
 
 You can read your own p50, p95 and p99. The runs are seeded, so everyone's numbers should be close, but laptops differ a little, so don't expect an exact match.

@@ -18,8 +18,6 @@ Part 1, right after the opening. Checkpoint 1 is your own trace in Langfuse.
 3. Find the root observation `tripmate`, the `LangGraph` chain under it, the generations and the tools.
 4. Compare your tree with the one on the projector.
 
-> **Soumen:** screenshot of the Case 0 tree with the four observation types labelled.
-
 ## Checkpoint
 
 You see your own trace with the root `tripmate`. Put up a green sticky.

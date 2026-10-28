@@ -89,7 +89,7 @@ def test_an_assert_in_the_guard_counts_as_a_rejection(
     )
     _, out, _ = ws(capsys, "case", "2", "--rerun", "--exporter", "console")
     lines = out.splitlines()
-    assert "tool book_flight [ERROR] does not match request: assert failed" in out
+    assert "tool book_flight [ERROR] does not match request: AssertionError" in out
     assert "guard: caught mismatch on origin, destination" in lines
     assert lines[-1] == PASS
 
