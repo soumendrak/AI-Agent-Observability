@@ -1,12 +1,13 @@
 import subprocess
 from collections.abc import Iterator
+from datetime import timedelta
 from pathlib import Path
 from typing import Protocol
 
 import pytest
 from fake_langfuse import FakeLangfuse, serve
 
-from tripmate import cli
+from tripmate import checkout, cli
 from tripmate.agent import RunResult, run_agent
 from tripmate.guards import validate_booking
 from tripmate.request import EXAMPLE
@@ -99,3 +100,8 @@ def clone(tmp_path: Path) -> Path:
     git(folder, "init", "-q")
     commit(folder, ORIGINAL, "workshop")
     return folder
+
+
+@pytest.fixture
+def before_freeze(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(checkout, "now", lambda: checkout.FREEZE - timedelta(seconds=1))

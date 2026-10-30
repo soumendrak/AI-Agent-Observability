@@ -8,7 +8,9 @@ from fake_langfuse import BROKEN_KEY, BUSY_KEY, DROPPED_KEY, FakeLangfuse, serve
 
 from tripmate import checkout, doctor
 
-pytestmark = pytest.mark.usefixtures("workshop_shell", "offline_regions", "workshop_clone")
+pytestmark = pytest.mark.usefixtures(
+    "workshop_shell", "offline_regions", "workshop_clone", "before_freeze"
+)
 UNREACHABLE = "http://127.0.0.1:9"
 
 
