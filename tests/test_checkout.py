@@ -38,10 +38,12 @@ def fake_git(monkeypatch: pytest.MonkeyPatch, answer: object) -> list[dict[str, 
     return calls
 
 
+@pytest.mark.usefixtures("before_freeze")
 def test_original_guards_before_the_tag_exists(clone: Path) -> None:
     assert checkout.review(clone / "guards.py") == ["[OK] guards.py is the original"]
 
 
+@pytest.mark.usefixtures("before_freeze")
 def test_edited_guards_is_flagged(clone: Path) -> None:
     (clone / "guards.py").write_text(ORIGINAL + "    raise ValueError\n", encoding="utf-8")
     assert checkout.review(clone / "guards.py") == [EDITED_WARNING]
