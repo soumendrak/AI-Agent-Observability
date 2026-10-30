@@ -9,10 +9,7 @@ import httpx
 from langfuse.api.core.api_error import ApiError
 
 from tripmate import checkout, models
-from tripmate.agent import run_agent
-from tripmate.request import EXAMPLE
 from tripmate.telemetry import KEYS, SetupError, Telemetry, from_env, load_env
-from tripmate.tools import no_guard
 
 REGIONS = {"EU": "https://cloud.langfuse.com", "US": "https://us.cloud.langfuse.com"}
 ARRIVAL_CHECKS = 16
@@ -100,17 +97,30 @@ def _arrived(telemetry: Telemetry, trace_id: str) -> bool:
     return False
 
 
+def _hello(telemetry: Telemetry) -> str:
+    """Send a two-span sanity trace that has nothing to do with TripMate."""
+    with telemetry.langfuse.start_as_current_observation(
+        name="hello-workshop", input={"mic_check": "Is this thing on?"}
+    ) as root:
+        with telemetry.langfuse.start_as_current_observation(
+            name="coffee_check", input={"cups": 1}
+        ) as coffee:
+            coffee.update(output={"verdict": "sufficient for observability"})
+        root.update(output={"reply": "Loud and clear. Langfuse can hear you."})
+    return root.trace_id
+
+
 def _remote(telemetry: Telemetry, base_url: str) -> Iterator[str]:
     project = telemetry.langfuse.api.projects.get().data[0]
     yield f"Langfuse project {project.name} at {base_url}"
-    result = run_agent(EXAMPLE, 0, no_guard, telemetry, latency_scale=0)
+    trace_id = _hello(telemetry)
     telemetry.langfuse.flush()
-    if not _arrived(telemetry, result.trace_id):
+    if not _arrived(telemetry, trace_id):
         raise Failed(
             "the hello trace has not shown up in Langfuse after 30 s; ingestion may be slow "
             "right now, so run `uv run ws doctor` again in a minute"
         )
-    yield f"hello trace: {base_url.rstrip('/')}/project/{project.id}/traces/{result.trace_id}"
+    yield f"hello trace: {base_url.rstrip('/')}/project/{project.id}/traces/{trace_id}"
     yield "READY-" + hashlib.sha256(project.id.encode()).hexdigest()[:4].upper()
 
 

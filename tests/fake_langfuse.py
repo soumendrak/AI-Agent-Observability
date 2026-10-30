@@ -58,8 +58,8 @@ def serve(accepts_keys: bool = True) -> tuple[FakeLangfuse, ThreadingHTTPServer]
                         "startTime": "2026-10-31T09:00:00Z",
                         "type": "AGENT",
                     }
-                    for s in fake.roots()
-                    if s["trace_id"] == trace_id
+                    for s in fake.spans
+                    if s["parent"] == "" and s["trace_id"] == trace_id
                 ]
                 self.reply(200, {"data": roots, "meta": {}})
             else:

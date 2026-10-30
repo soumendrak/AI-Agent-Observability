@@ -53,6 +53,9 @@ def test_ready(capsys: pytest.CaptureFixture[str], fake_langfuse: FakeLangfuse) 
     ]
     assert lines[6].startswith(f"[OK] hello trace: {fake_langfuse.url}/project/proj-test/traces/")
     assert lines[7] == "READY-" + hashlib.sha256(b"proj-test").hexdigest()[:4].upper()
+    trace_id = lines[6].rsplit("/", 1)[1]
+    names = sorted(s["name"] for s in fake_langfuse.spans if s["trace_id"] == trace_id)
+    assert names == ["coffee_check", "hello-workshop"]
 
 
 def test_wrong_python(capsys: pytest.CaptureFixture[str]) -> None:
