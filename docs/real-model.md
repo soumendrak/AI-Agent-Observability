@@ -11,7 +11,7 @@ The workshop labs use only the scripted fake model. This mode is for Soumen's sh
    OPENAI_MODEL=gpt-5.4-mini
    ```
    Any OpenAI-compatible provider works: set its `/v1` URL and model name. Without `OPENAI_BASE_URL` the OpenAI API is used. The default model is `gpt-5.4-mini`.
-3. Run `uv run ws doctor`. The line `[OK] LLM_MODE=openai, model ... at ...` confirms the settings. The hello trace still uses the scripted model, so doctor spends no tokens.
+3. Run `uv run ws doctor`. The line `[OK] LLM_MODE=openai, model ... at ...` confirms the settings. The hello trace calls no model, so doctor spends no tokens.
 4. Run the same request twice:
    ```
    uv run ws run "Book HYD to BLR on 2026-10-31"
