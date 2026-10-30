@@ -789,8 +789,6 @@ If you do not see this:
 
 An alert can tell "not measured" from "failing". You need the scores from Lab 5. Soumen demos this with two pre-built alerts on the projector, so building your own is optional. The free Hobby plan allows two alerts.
 
-If you made the alert at the start of Lab 5, it started on `NO_DATA`. If you make it now, your Lab 5 scores already exist, so it can go straight to `ALERT`.
-
 1. In Langfuse, open **Alerts** and click **New Alert**.
 2. Choose the data source **Scores** (boolean) and the score `booking_matches_request`.
 3. Choose the metric average. Choose the operator below and the threshold `0.9`. Choose the smallest window offered.
