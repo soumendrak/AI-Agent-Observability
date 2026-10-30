@@ -98,7 +98,6 @@ def _arrived(telemetry: Telemetry, trace_id: str) -> bool:
 
 
 def _hello(telemetry: Telemetry) -> str:
-    """Send a two-span sanity trace that has nothing to do with TripMate."""
     with telemetry.langfuse.start_as_current_observation(
         name="hello-workshop", input={"mic_check": "Is this thing on?"}
     ) as root:
